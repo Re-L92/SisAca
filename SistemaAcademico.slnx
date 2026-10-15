@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="SistemaAcademico.BLL/SistemaAcademico.BLL.csproj" />
+  <Project Path="SistemaAcademico.DAL/SistemaAcademico.DAL.csproj" />
+  <Project Path="SistemaAcademico.Entidades/SistemaAcademico.Entidades.csproj" />
+  <Project Path="SistemaAcademico.UI/SistemaAcademico.UI.csproj" />
+</Solution>

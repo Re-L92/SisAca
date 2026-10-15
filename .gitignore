@@ -1,0 +1,23 @@
+# Carpetas de compilación y resultados
+bin/
+obj/
+[Bb]in/
+[Oo]bj/
+
+# Carpeta de configuración local de Visual Studio
+.vs/
+
+# Archivos de usuario específicos de Visual Studio (opciones de proyectos y soluciones)
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Archivos de NuGet (si se configuran para restaurarse automáticamente)
+packages/
+*.nupkg
+
+# Script de la base de datos que mencionaste
+#Script_DB_GestionAcademica.sql
+# O si prefieres ignorar todos los .sql:
+*.sql
