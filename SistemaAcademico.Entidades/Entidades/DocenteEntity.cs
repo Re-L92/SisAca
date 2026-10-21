@@ -11,6 +11,7 @@ namespace SistemaAcademico.Entidades.Entidades
         public string? Telefono { get; private set; }
         public string? Correo { get; private set; }
         public string? Especialidad { get; private set; }
+        public int EspecialidadId { get; private set; }
         public string Estado { get; private set; } = "Activo";
 
         public string NombreCompleto => $"{Nombres} {Apellidos}".Trim();
@@ -19,12 +20,16 @@ namespace SistemaAcademico.Entidades.Entidades
 
         public DocenteEntity() { }
 
-        public DocenteEntity(string nombres, string apellidos, string cedula, string? especialidad = null, string? telefono = null, string? correo = null)
+        public DocenteEntity(string nombres, string apellidos, string cedula, string? especialidad = null, string? telefono = null, string? correo = null, int especialidadId = 0)
         {
             CambiarNombres(nombres);
             CambiarApellidos(apellidos);
             CambiarCedula(cedula);
-            CambiarEspecialidad(especialidad);
+            if (!string.IsNullOrWhiteSpace(especialidad))
+            {
+                CambiarEspecialidad(especialidad);
+            }
+            CambiarEspecialidadId(especialidadId);
             CambiarTelefono(telefono);
             CambiarCorreo(correo);
             Estado = "Activo";
@@ -37,6 +42,11 @@ namespace SistemaAcademico.Entidades.Entidades
         public void AsignarId(int id)
         {
             IdDocente = id;
+        }
+
+        public void AsignarEspecialidadId(int especialidadId)
+        {
+            EspecialidadId = especialidadId;
         }
 
         public void CambiarNombres(string nombres)
@@ -65,7 +75,15 @@ namespace SistemaAcademico.Entidades.Entidades
 
         public void CambiarEspecialidad(string? especialidad)
         {
-            Especialidad = string.IsNullOrWhiteSpace(especialidad) ? null : especialidad.Trim();
+            if (string.IsNullOrWhiteSpace(especialidad))
+                throw new Exception("Debe ingresar o seleccionar una especialidad.");
+
+            Especialidad = especialidad.Trim();
+        }
+
+        public void CambiarEspecialidadId(int especialidadId)
+        {
+            EspecialidadId = especialidadId;
         }
 
         public void CambiarTelefono(string? telefono)

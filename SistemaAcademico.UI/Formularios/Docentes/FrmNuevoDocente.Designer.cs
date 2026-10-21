@@ -18,27 +18,27 @@ namespace SistemaAcademico.UI.Formularios.Docentes
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
-            pnlHeader = new System.Windows.Forms.Panel();
-            lblSubtitulo = new System.Windows.Forms.Label();
-            lblTitulo = new System.Windows.Forms.Label();
-            pnlContenido = new System.Windows.Forms.Panel();
-            pnlForm = new System.Windows.Forms.Panel();
-            lblNombres = new System.Windows.Forms.Label();
-            txtNombres = new System.Windows.Forms.TextBox();
-            lblApellidos = new System.Windows.Forms.Label();
-            txtApellidos = new System.Windows.Forms.TextBox();
-            lblCedula = new System.Windows.Forms.Label();
-            txtCedula = new System.Windows.Forms.TextBox();
-            lblEspecialidad = new System.Windows.Forms.Label();
-            txtEspecialidad = new System.Windows.Forms.TextBox();
-            lblTelefono = new System.Windows.Forms.Label();
-            txtTelefono = new System.Windows.Forms.TextBox();
-            lblCorreo = new System.Windows.Forms.Label();
-            txtCorreo = new System.Windows.Forms.TextBox();
-            pnlBotones = new System.Windows.Forms.Panel();
-            btnCancelar = new System.Windows.Forms.Button();
-            btnGuardar = new System.Windows.Forms.Button();
-            errorProvider = new System.Windows.Forms.ErrorProvider(components);
+            pnlHeader = new Panel();
+            lblSubtitulo = new Label();
+            lblTitulo = new Label();
+            pnlContenido = new Panel();
+            pnlForm = new Panel();
+            cmbEspecialidad = new ComboBox();
+            lblNombres = new Label();
+            txtNombres = new TextBox();
+            lblApellidos = new Label();
+            txtApellidos = new TextBox();
+            lblCedula = new Label();
+            txtCedula = new TextBox();
+            lblEspecialidad = new Label();
+            lblTelefono = new Label();
+            txtTelefono = new TextBox();
+            lblCorreo = new Label();
+            txtCorreo = new TextBox();
+            pnlBotones = new Panel();
+            btnCancelar = new Button();
+            btnGuardar = new Button();
+            errorProvider = new ErrorProvider(components);
             pnlHeader.SuspendLayout();
             pnlContenido.SuspendLayout();
             pnlForm.SuspendLayout();
@@ -48,51 +48,55 @@ namespace SistemaAcademico.UI.Formularios.Docentes
             // 
             // pnlHeader
             // 
-            pnlHeader.BackColor = System.Drawing.Color.FromArgb(15, 23, 42);
+            pnlHeader.BackColor = Color.FromArgb(15, 23, 42);
             pnlHeader.Controls.Add(lblSubtitulo);
             pnlHeader.Controls.Add(lblTitulo);
-            pnlHeader.Dock = System.Windows.Forms.DockStyle.Top;
-            pnlHeader.Location = new System.Drawing.Point(0, 0);
+            pnlHeader.Dock = DockStyle.Top;
+            pnlHeader.Location = new Point(0, 0);
+            pnlHeader.Margin = new Padding(3, 4, 3, 4);
             pnlHeader.Name = "pnlHeader";
-            pnlHeader.Padding = new System.Windows.Forms.Padding(25, 18, 25, 18);
-            pnlHeader.Size = new System.Drawing.Size(600, 80);
+            pnlHeader.Padding = new Padding(29, 24, 29, 24);
+            pnlHeader.Size = new Size(686, 107);
             pnlHeader.TabIndex = 0;
             // 
             // lblSubtitulo
             // 
             lblSubtitulo.AutoSize = true;
-            lblSubtitulo.Font = new System.Drawing.Font("Segoe UI", 9.5F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            lblSubtitulo.ForeColor = System.Drawing.Color.FromArgb(148, 163, 184);
-            lblSubtitulo.Location = new System.Drawing.Point(25, 45);
+            lblSubtitulo.Font = new Font("Segoe UI", 9.5F);
+            lblSubtitulo.ForeColor = Color.FromArgb(148, 163, 184);
+            lblSubtitulo.Location = new Point(29, 60);
             lblSubtitulo.Name = "lblSubtitulo";
-            lblSubtitulo.Size = new System.Drawing.Size(332, 17);
+            lblSubtitulo.Size = new Size(395, 21);
             lblSubtitulo.TabIndex = 1;
             lblSubtitulo.Text = "Complete los datos del expediente del personal docente";
             // 
             // lblTitulo
             // 
             lblTitulo.AutoSize = true;
-            lblTitulo.Font = new System.Drawing.Font("Segoe UI", 14.5F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            lblTitulo.ForeColor = System.Drawing.Color.White;
-            lblTitulo.Location = new System.Drawing.Point(23, 15);
+            lblTitulo.Font = new Font("Segoe UI", 14.5F, FontStyle.Bold);
+            lblTitulo.ForeColor = Color.White;
+            lblTitulo.Location = new Point(26, 20);
             lblTitulo.Name = "lblTitulo";
-            lblTitulo.Size = new System.Drawing.Size(199, 28);
+            lblTitulo.Size = new Size(253, 35);
             lblTitulo.TabIndex = 0;
             lblTitulo.Text = "Registro de Docente";
+            lblTitulo.Click += lblTitulo_Click;
             // 
             // pnlContenido
             // 
-            pnlContenido.BackColor = System.Drawing.Color.White;
+            pnlContenido.BackColor = Color.White;
             pnlContenido.Controls.Add(pnlForm);
-            pnlContenido.Dock = System.Windows.Forms.DockStyle.Fill;
-            pnlContenido.Location = new System.Drawing.Point(0, 80);
+            pnlContenido.Dock = DockStyle.Fill;
+            pnlContenido.Location = new Point(0, 107);
+            pnlContenido.Margin = new Padding(3, 4, 3, 4);
             pnlContenido.Name = "pnlContenido";
-            pnlContenido.Padding = new System.Windows.Forms.Padding(30, 20, 30, 20);
-            pnlContenido.Size = new System.Drawing.Size(600, 420);
+            pnlContenido.Padding = new Padding(34, 27, 34, 27);
+            pnlContenido.Size = new Size(686, 560);
             pnlContenido.TabIndex = 1;
             // 
             // pnlForm
             // 
+            pnlForm.Controls.Add(cmbEspecialidad);
             pnlForm.Controls.Add(lblNombres);
             pnlForm.Controls.Add(txtNombres);
             pnlForm.Controls.Add(lblApellidos);
@@ -100,161 +104,169 @@ namespace SistemaAcademico.UI.Formularios.Docentes
             pnlForm.Controls.Add(lblCedula);
             pnlForm.Controls.Add(txtCedula);
             pnlForm.Controls.Add(lblEspecialidad);
-            pnlForm.Controls.Add(txtEspecialidad);
             pnlForm.Controls.Add(lblTelefono);
             pnlForm.Controls.Add(txtTelefono);
             pnlForm.Controls.Add(lblCorreo);
             pnlForm.Controls.Add(txtCorreo);
-            pnlForm.Dock = System.Windows.Forms.DockStyle.Fill;
-            pnlForm.Location = new System.Drawing.Point(30, 20);
+            pnlForm.Dock = DockStyle.Fill;
+            pnlForm.Location = new Point(34, 27);
+            pnlForm.Margin = new Padding(3, 4, 3, 4);
             pnlForm.Name = "pnlForm";
-            pnlForm.Size = new System.Drawing.Size(540, 380);
+            pnlForm.Size = new Size(618, 506);
             pnlForm.TabIndex = 0;
+            // 
+            // cmbEspecialidad
+            // 
+            cmbEspecialidad.Font = new Font("Segoe UI", 11F);
+            cmbEspecialidad.FormattingEnabled = true;
+            cmbEspecialidad.Location = new Point(307, 193);
+            cmbEspecialidad.Name = "cmbEspecialidad";
+            cmbEspecialidad.Size = new Size(273, 33);
+            cmbEspecialidad.TabIndex = 12;
+            cmbEspecialidad.Text = "Ej:Matemáticas, Ciencias, etc.";
             // 
             // lblNombres
             // 
             lblNombres.AutoSize = true;
-            lblNombres.Font = new System.Drawing.Font("Segoe UI Semibold", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            lblNombres.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
-            lblNombres.Location = new System.Drawing.Point(5, 5);
+            lblNombres.Font = new Font("Segoe UI Semibold", 9.75F, FontStyle.Bold);
+            lblNombres.ForeColor = Color.FromArgb(51, 65, 85);
+            lblNombres.Location = new Point(6, 7);
             lblNombres.Name = "lblNombres";
-            lblNombres.Size = new System.Drawing.Size(81, 17);
+            lblNombres.Size = new Size(96, 23);
             lblNombres.TabIndex = 0;
             lblNombres.Text = "Nombres: *";
             // 
             // txtNombres
             // 
-            txtNombres.Font = new System.Drawing.Font("Segoe UI", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            txtNombres.Location = new System.Drawing.Point(8, 25);
+            txtNombres.Font = new Font("Segoe UI", 11F);
+            txtNombres.Location = new Point(9, 33);
+            txtNombres.Margin = new Padding(3, 4, 3, 4);
             txtNombres.Name = "txtNombres";
             txtNombres.PlaceholderText = "Ingrese los nombres del maestro";
-            txtNombres.Size = new System.Drawing.Size(500, 27);
+            txtNombres.Size = new Size(571, 32);
             txtNombres.TabIndex = 1;
             // 
             // lblApellidos
             // 
             lblApellidos.AutoSize = true;
-            lblApellidos.Font = new System.Drawing.Font("Segoe UI Semibold", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            lblApellidos.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
-            lblApellidos.Location = new System.Drawing.Point(5, 65);
+            lblApellidos.Font = new Font("Segoe UI Semibold", 9.75F, FontStyle.Bold);
+            lblApellidos.ForeColor = Color.FromArgb(51, 65, 85);
+            lblApellidos.Location = new Point(6, 87);
             lblApellidos.Name = "lblApellidos";
-            lblApellidos.Size = new System.Drawing.Size(80, 17);
+            lblApellidos.Size = new Size(95, 23);
             lblApellidos.TabIndex = 2;
             lblApellidos.Text = "Apellidos: *";
             // 
             // txtApellidos
             // 
-            txtApellidos.Font = new System.Drawing.Font("Segoe UI", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            txtApellidos.Location = new System.Drawing.Point(8, 85);
+            txtApellidos.Font = new Font("Segoe UI", 11F);
+            txtApellidos.Location = new Point(9, 113);
+            txtApellidos.Margin = new Padding(3, 4, 3, 4);
             txtApellidos.Name = "txtApellidos";
             txtApellidos.PlaceholderText = "Ingrese los apellidos del maestro";
-            txtApellidos.Size = new System.Drawing.Size(500, 27);
+            txtApellidos.Size = new Size(571, 32);
             txtApellidos.TabIndex = 3;
             // 
             // lblCedula
             // 
             lblCedula.AutoSize = true;
-            lblCedula.Font = new System.Drawing.Font("Segoe UI Semibold", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            lblCedula.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
-            lblCedula.Location = new System.Drawing.Point(5, 125);
+            lblCedula.Font = new Font("Segoe UI Semibold", 9.75F, FontStyle.Bold);
+            lblCedula.ForeColor = Color.FromArgb(51, 65, 85);
+            lblCedula.Location = new Point(6, 167);
             lblCedula.Name = "lblCedula";
-            lblCedula.Size = new System.Drawing.Size(66, 17);
+            lblCedula.Size = new Size(79, 23);
             lblCedula.TabIndex = 4;
             lblCedula.Text = "Cédula: *";
             // 
             // txtCedula
             // 
-            txtCedula.Font = new System.Drawing.Font("Segoe UI", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            txtCedula.Location = new System.Drawing.Point(8, 145);
+            txtCedula.Font = new Font("Segoe UI", 11F);
+            txtCedula.Location = new Point(9, 193);
+            txtCedula.Margin = new Padding(3, 4, 3, 4);
             txtCedula.Name = "txtCedula";
             txtCedula.PlaceholderText = "Ej: 001-010190-0001A";
-            txtCedula.Size = new System.Drawing.Size(240, 27);
+            txtCedula.Size = new Size(274, 32);
             txtCedula.TabIndex = 5;
             // 
             // lblEspecialidad
             // 
             lblEspecialidad.AutoSize = true;
-            lblEspecialidad.Font = new System.Drawing.Font("Segoe UI Semibold", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            lblEspecialidad.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
-            lblEspecialidad.Location = new System.Drawing.Point(265, 125);
+            lblEspecialidad.Font = new Font("Segoe UI Semibold", 9.75F, FontStyle.Bold);
+            lblEspecialidad.ForeColor = Color.FromArgb(51, 65, 85);
+            lblEspecialidad.Location = new Point(303, 167);
             lblEspecialidad.Name = "lblEspecialidad";
-            lblEspecialidad.Size = new System.Drawing.Size(84, 17);
+            lblEspecialidad.Size = new Size(107, 23);
             lblEspecialidad.TabIndex = 6;
             lblEspecialidad.Text = "Especialidad:";
-            // 
-            // txtEspecialidad
-            // 
-            txtEspecialidad.Font = new System.Drawing.Font("Segoe UI", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            txtEspecialidad.Location = new System.Drawing.Point(268, 145);
-            txtEspecialidad.Name = "txtEspecialidad";
-            txtEspecialidad.PlaceholderText = "Ej: Matemáticas, Ciencias, etc.";
-            txtEspecialidad.Size = new System.Drawing.Size(240, 27);
-            txtEspecialidad.TabIndex = 7;
             // 
             // lblTelefono
             // 
             lblTelefono.AutoSize = true;
-            lblTelefono.Font = new System.Drawing.Font("Segoe UI Semibold", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            lblTelefono.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
-            lblTelefono.Location = new System.Drawing.Point(5, 185);
+            lblTelefono.Font = new Font("Segoe UI Semibold", 9.75F, FontStyle.Bold);
+            lblTelefono.ForeColor = Color.FromArgb(51, 65, 85);
+            lblTelefono.Location = new Point(6, 247);
             lblTelefono.Name = "lblTelefono";
-            lblTelefono.Size = new System.Drawing.Size(62, 17);
+            lblTelefono.Size = new Size(79, 23);
             lblTelefono.TabIndex = 8;
             lblTelefono.Text = "Teléfono:";
             // 
             // txtTelefono
             // 
-            txtTelefono.Font = new System.Drawing.Font("Segoe UI", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            txtTelefono.Location = new System.Drawing.Point(8, 205);
+            txtTelefono.Font = new Font("Segoe UI", 11F);
+            txtTelefono.Location = new Point(9, 273);
+            txtTelefono.Margin = new Padding(3, 4, 3, 4);
             txtTelefono.Name = "txtTelefono";
             txtTelefono.PlaceholderText = "Ej: 8888-8888";
-            txtTelefono.Size = new System.Drawing.Size(240, 27);
+            txtTelefono.Size = new Size(274, 32);
             txtTelefono.TabIndex = 9;
             // 
             // lblCorreo
             // 
             lblCorreo.AutoSize = true;
-            lblCorreo.Font = new System.Drawing.Font("Segoe UI Semibold", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            lblCorreo.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
-            lblCorreo.Location = new System.Drawing.Point(265, 185);
+            lblCorreo.Font = new Font("Segoe UI Semibold", 9.75F, FontStyle.Bold);
+            lblCorreo.ForeColor = Color.FromArgb(51, 65, 85);
+            lblCorreo.Location = new Point(303, 247);
             lblCorreo.Name = "lblCorreo";
-            lblCorreo.Size = new System.Drawing.Size(123, 17);
+            lblCorreo.Size = new Size(155, 23);
             lblCorreo.TabIndex = 10;
             lblCorreo.Text = "Correo Electrónico:";
             // 
             // txtCorreo
             // 
-            txtCorreo.Font = new System.Drawing.Font("Segoe UI", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            txtCorreo.Location = new System.Drawing.Point(268, 205);
+            txtCorreo.Font = new Font("Segoe UI", 11F);
+            txtCorreo.Location = new Point(306, 273);
+            txtCorreo.Margin = new Padding(3, 4, 3, 4);
             txtCorreo.Name = "txtCorreo";
             txtCorreo.PlaceholderText = "docente@correo.com";
-            txtCorreo.Size = new System.Drawing.Size(240, 27);
+            txtCorreo.Size = new Size(274, 32);
             txtCorreo.TabIndex = 11;
             // 
             // pnlBotones
             // 
-            pnlBotones.BackColor = System.Drawing.Color.FromArgb(248, 250, 252);
+            pnlBotones.BackColor = Color.FromArgb(248, 250, 252);
             pnlBotones.Controls.Add(btnCancelar);
             pnlBotones.Controls.Add(btnGuardar);
-            pnlBotones.Dock = System.Windows.Forms.DockStyle.Bottom;
-            pnlBotones.Location = new System.Drawing.Point(0, 500);
+            pnlBotones.Dock = DockStyle.Bottom;
+            pnlBotones.Location = new Point(0, 667);
+            pnlBotones.Margin = new Padding(3, 4, 3, 4);
             pnlBotones.Name = "pnlBotones";
-            pnlBotones.Padding = new System.Windows.Forms.Padding(20, 15, 20, 15);
-            pnlBotones.Size = new System.Drawing.Size(600, 70);
+            pnlBotones.Padding = new Padding(23, 20, 23, 20);
+            pnlBotones.Size = new Size(686, 93);
             pnlBotones.TabIndex = 2;
             // 
             // btnCancelar
             // 
-            btnCancelar.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right;
-            btnCancelar.BackColor = System.Drawing.Color.White;
-            btnCancelar.Cursor = System.Windows.Forms.Cursors.Hand;
-            btnCancelar.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(203, 213, 225);
-            btnCancelar.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            btnCancelar.Font = new System.Drawing.Font("Segoe UI Semibold", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            btnCancelar.ForeColor = System.Drawing.Color.FromArgb(71, 85, 105);
-            btnCancelar.Location = new System.Drawing.Point(340, 15);
+            btnCancelar.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            btnCancelar.BackColor = Color.White;
+            btnCancelar.Cursor = Cursors.Hand;
+            btnCancelar.FlatAppearance.BorderColor = Color.FromArgb(203, 213, 225);
+            btnCancelar.FlatStyle = FlatStyle.Flat;
+            btnCancelar.Font = new Font("Segoe UI Semibold", 10F, FontStyle.Bold);
+            btnCancelar.ForeColor = Color.FromArgb(71, 85, 105);
+            btnCancelar.Location = new Point(389, 20);
+            btnCancelar.Margin = new Padding(3, 4, 3, 4);
             btnCancelar.Name = "btnCancelar";
-            btnCancelar.Size = new System.Drawing.Size(110, 40);
+            btnCancelar.Size = new Size(126, 53);
             btnCancelar.TabIndex = 1;
             btnCancelar.Text = "Cancelar";
             btnCancelar.UseVisualStyleBackColor = false;
@@ -262,16 +274,17 @@ namespace SistemaAcademico.UI.Formularios.Docentes
             // 
             // btnGuardar
             // 
-            btnGuardar.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right;
-            btnGuardar.BackColor = System.Drawing.Color.FromArgb(37, 99, 235);
-            btnGuardar.Cursor = System.Windows.Forms.Cursors.Hand;
+            btnGuardar.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            btnGuardar.BackColor = Color.FromArgb(37, 99, 235);
+            btnGuardar.Cursor = Cursors.Hand;
             btnGuardar.FlatAppearance.BorderSize = 0;
-            btnGuardar.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            btnGuardar.Font = new System.Drawing.Font("Segoe UI Semibold", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            btnGuardar.ForeColor = System.Drawing.Color.White;
-            btnGuardar.Location = new System.Drawing.Point(460, 15);
+            btnGuardar.FlatStyle = FlatStyle.Flat;
+            btnGuardar.Font = new Font("Segoe UI Semibold", 10F, FontStyle.Bold);
+            btnGuardar.ForeColor = Color.White;
+            btnGuardar.Location = new Point(526, 20);
+            btnGuardar.Margin = new Padding(3, 4, 3, 4);
             btnGuardar.Name = "btnGuardar";
-            btnGuardar.Size = new System.Drawing.Size(120, 40);
+            btnGuardar.Size = new Size(137, 53);
             btnGuardar.TabIndex = 0;
             btnGuardar.Text = "Guardar";
             btnGuardar.UseVisualStyleBackColor = false;
@@ -283,18 +296,19 @@ namespace SistemaAcademico.UI.Formularios.Docentes
             // 
             // FrmNuevoDocente
             // 
-            AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
-            AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            BackColor = System.Drawing.Color.White;
-            ClientSize = new System.Drawing.Size(600, 570);
+            AutoScaleDimensions = new SizeF(8F, 20F);
+            AutoScaleMode = AutoScaleMode.Font;
+            BackColor = Color.White;
+            ClientSize = new Size(686, 760);
             Controls.Add(pnlContenido);
             Controls.Add(pnlBotones);
             Controls.Add(pnlHeader);
-            FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
+            FormBorderStyle = FormBorderStyle.FixedDialog;
+            Margin = new Padding(3, 4, 3, 4);
             MaximizeBox = false;
             MinimizeBox = false;
             Name = "FrmNuevoDocente";
-            StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
+            StartPosition = FormStartPosition.CenterParent;
             Text = "Registro de Maestro";
             pnlHeader.ResumeLayout(false);
             pnlHeader.PerformLayout();
@@ -320,7 +334,6 @@ namespace SistemaAcademico.UI.Formularios.Docentes
         private System.Windows.Forms.Label lblCedula;
         private System.Windows.Forms.TextBox txtCedula;
         private System.Windows.Forms.Label lblEspecialidad;
-        private System.Windows.Forms.TextBox txtEspecialidad;
         private System.Windows.Forms.Label lblTelefono;
         private System.Windows.Forms.TextBox txtTelefono;
         private System.Windows.Forms.Label lblCorreo;
@@ -329,5 +342,6 @@ namespace SistemaAcademico.UI.Formularios.Docentes
         private System.Windows.Forms.Button btnGuardar;
         private System.Windows.Forms.Button btnCancelar;
         private System.Windows.Forms.ErrorProvider errorProvider;
+        private ComboBox cmbEspecialidad;
     }
 }

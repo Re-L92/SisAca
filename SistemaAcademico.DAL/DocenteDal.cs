@@ -34,7 +34,21 @@ namespace SistemaAcademico.DAL
                 docente.CambiarCedula(dr["Cedula"].ToString() ?? string.Empty);
                 docente.CambiarTelefono(dr["Telefono"] != DBNull.Value ? dr["Telefono"].ToString() : null);
                 docente.CambiarCorreo(dr["Correo"] != DBNull.Value ? dr["Correo"].ToString() : null);
-                docente.CambiarEspecialidad(dr["Especialidad"] != DBNull.Value ? dr["Especialidad"].ToString() : null);
+
+                // Mapeo dinámico y seguro de Especialidad y EspecialidadId
+                for (int i = 0; i < dr.FieldCount; i++)
+                {
+                    string col = dr.GetName(i);
+                    if (col.Equals("Especialidad", StringComparison.OrdinalIgnoreCase) && dr[i] != DBNull.Value)
+                    {
+                        docente.CambiarEspecialidad(dr[i].ToString());
+                    }
+                    else if (col.Equals("EspecialidadId", StringComparison.OrdinalIgnoreCase) && dr[i] != DBNull.Value)
+                    {
+                        docente.AsignarEspecialidadId(Convert.ToInt32(dr[i]));
+                    }
+                }
+
                 docente.CambiarEstado(dr["Estado"].ToString() ?? "Activo");
 
                 lista.Add(docente);
@@ -57,7 +71,9 @@ namespace SistemaAcademico.DAL
             cmd.Parameters.Add("@Cedula", SqlDbType.NVarChar, 25).Value = docente.Cedula;
             cmd.Parameters.Add("@Telefono", SqlDbType.NVarChar, 20).Value = (object?)docente.Telefono ?? DBNull.Value;
             cmd.Parameters.Add("@Correo", SqlDbType.NVarChar, 100).Value = (object?)docente.Correo ?? DBNull.Value;
-            cmd.Parameters.Add("@Especialidad", SqlDbType.NVarChar, 100).Value = (object?)docente.Especialidad ?? DBNull.Value;
+
+            // El SP ahora recibe el texto de la especialidad directamente (@Especialidad NVARCHAR(100))
+            cmd.Parameters.Add("@Especialidad", SqlDbType.NVarChar, 100).Value = docente.Especialidad ?? string.Empty;
 
             SqlParameter paramNuevoId = new("@NuevoIdDocente", SqlDbType.Int)
             {
