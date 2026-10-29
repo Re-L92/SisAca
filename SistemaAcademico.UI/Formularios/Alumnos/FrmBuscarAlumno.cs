@@ -88,12 +88,12 @@ namespace SistemaAcademico.UI.Formularios.Alumnos
             }
 
             bool estaActivo = alumno.Estado.Equals("Activo", StringComparison.OrdinalIgnoreCase);
-            string accion = estaActivo ? "dar de baja (borrado lógico)" : "reactivar";
+            string accion = estaActivo ? "dar de baja" : "reactivar";
             string nuevoEstadoEsperado = estaActivo ? "Inactivo" : "Activo";
 
             var confirmacion = MessageBox.Show(
                 $"¿Está seguro de que desea {accion} al estudiante '{alumno.NombreCompleto}'?\n\nSu estado pasará a ser: {nuevoEstadoEsperado}.",
-                "Confirmación de Borrado Lógico",
+                "Confirmación de Estado",
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Question);
 
