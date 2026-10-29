@@ -1,8 +1,9 @@
+using SistemaAcademico.UI.Formularios.Alumnos;
+using SistemaAcademico.UI.Formularios.Docentes;
+using SistemaAcademico.UI.Formularios.Seguridad;
 using System;
 using System.Drawing;
 using System.Windows.Forms;
-using SistemaAcademico.UI.Formularios.Docentes;
-using SistemaAcademico.UI.Formularios.Seguridad;
 
 namespace SistemaAcademico.UI
 {
@@ -76,7 +77,7 @@ namespace SistemaAcademico.UI
         {
             ActivarBoton(btnMenuEstudiantes);
             lblModuloActual.Text = "Estudiantes";
-            MessageBox.Show("Módulo de Estudiantes programado para la siguiente sesión.", "Próximamente", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            AbrirFormularioEnPanel(new FrmBuscarAlumno(), "Alumnos");
         }
 
         private void btnMenuMatriculas_Click(object sender, EventArgs e)
