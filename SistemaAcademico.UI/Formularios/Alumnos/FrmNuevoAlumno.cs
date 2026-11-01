@@ -29,12 +29,13 @@ namespace SistemaAcademico.UI.Formularios.Alumnos
                 // 1. Estado inicial del alumno (Activo por defecto)
                 cboEstadoEstudiante.SelectedIndex = 0;
 
-                // 2. Obtener el próximo número de matrícula para el código único
-                _proximoNumeroMatricula = await _alumnoBll.ObtenerSiguienteNumeroMatriculaAsync();
+                // 2. Obtener el próximo correlativo de estudiante para el código único
+                _proximoNumeroMatricula = await _alumnoBll.ObtenerSiguienteCorrelativoEstudianteAsync();
 
                 // 3. Cargar Años Académicos desde la base de datos
                 var listaAnios = await _alumnoBll.ListarAniosAcademicosAsync();
 
+                cboAnioAcademico.DataSource = null;
                 cboAnioAcademico.DisplayMember = "NombreAnio";
                 cboAnioAcademico.ValueMember = "IdAnio";
                 cboAnioAcademico.DataSource = listaAnios;
@@ -198,27 +199,31 @@ namespace SistemaAcademico.UI.Formularios.Alumnos
 
             try
             {
-                var model = new AlumnoRegistroModel
-                {
-                    EstudianteNombres = txtNombres.Text.Trim(),
-                    EstudianteApellidos = txtApellidos.Text.Trim(),
-                    EstudianteFechaNac = dtpFechaNacimiento.Value.Date,
-                    Estado = cboEstadoEstudiante.SelectedItem?.ToString() ?? "Activo",
-                    IdAnio = ObtenerIdAnioSeleccionado(),
-                    IdSeccion = ObtenerIdSeccionSeleccionada(),
-                    TutorNombres = txtTutorNombres.Text.Trim(),
-                    TutorApellidos = txtTutorApellidos.Text.Trim(),
-                    TutorCedula = txtTutorCedula.Text.Trim(),
-                    TutorTelefono = txtTutorTelefono.Text.Trim(),
-                    TutorDireccion = txtTutorDireccion.Text.Trim()
-                };
+                var model = new AlumnoRegistroModel();
+                model.CambiarDatosEstudiante(
+                    txtNombres.Text,
+                    txtApellidos.Text,
+                    dtpFechaNacimiento.Value.Date,
+                    cboEstadoEstudiante.SelectedItem?.ToString() ?? "Activo"
+                );
+
+                model.AsignarMatricula(ObtenerIdAnioSeleccionado(), ObtenerIdSeccionSeleccionada());
+
+                model.AsignarTutor(
+                    txtTutorNombres.Text,
+                    txtTutorApellidos.Text,
+                    txtTutorCedula.Text,
+                    txtTutorTelefono.Text,
+                    txtTutorDireccion.Text
+                );
 
                 // Asignar el código generado
-                model.EstudianteCodigo = _alumnoBll.GenerarCodigoEstudiante(
-                    model.EstudianteNombres,
-                    model.EstudianteApellidos,
+                string codigoGenerado = _alumnoBll.GenerarCodigoEstudiante(
+                    txtNombres.Text,
+                    txtApellidos.Text,
                     _proximoNumeroMatricula
                 );
+                model.AsignarCodigo(codigoGenerado);
 
                 var (idEstudiante, idMatricula, codigoFinal) = await _alumnoBll.RegistrarEstudianteYMatriculaAsync(model);
 

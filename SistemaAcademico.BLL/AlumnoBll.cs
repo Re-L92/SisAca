@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
 using SistemaAcademico.DAL;
@@ -19,7 +18,14 @@ namespace SistemaAcademico.BLL
 
         public async Task<List<AlumnoEntity>> ListarAsync(string filtro = "", string estado = "")
         {
-            return await _alumnoDal.ListarAsync(filtro.Trim(), estado.Trim());
+            var lista = await _alumnoDal.ListarAsync(filtro.Trim());
+
+            if (!string.IsNullOrWhiteSpace(estado))
+            {
+                lista = lista.FindAll(a => a.Estado.Equals(estado, StringComparison.OrdinalIgnoreCase));
+            }
+
+            return lista;
         }
 
         public async Task<List<AnioAcademicoEntity>> ListarAniosAcademicosAsync()
@@ -32,10 +38,6 @@ namespace SistemaAcademico.BLL
             return await _alumnoDal.ListarSeccionesAsync();
         }
 
-        /// <summary>
-        /// Obtiene las secciones A, B y C para el año indicado, ordenadas desde la base de datos
-        /// de modo que la sección más vacía (con menor cantidad de alumnos) se sitúe primero.
-        /// </summary>
         public async Task<List<SeccionEntity>> ListarSeccionesConDisponibilidadAsync(int idAnio)
         {
             if (idAnio <= 0) return new List<SeccionEntity>();
@@ -58,9 +60,6 @@ namespace SistemaAcademico.BLL
             return await _alumnoDal.ObtenerSiguienteCorrelativoEstudianteAsync();
         }
 
-        /// <summary>
-        /// Borrado lógico: alterna o asigna el estado Activo / Inactivo del estudiante en la base de datos.
-        /// </summary>
         public async Task<string> CambiarEstadoEstudianteAsync(int idEstudiante, string? nuevoEstado = null)
         {
             if (idEstudiante <= 0)
@@ -70,8 +69,8 @@ namespace SistemaAcademico.BLL
         }
 
         /// <summary>
-        /// Genera el código del estudiante a partir de las iniciales de sus 2 nombres,
-        /// 2 apellidos y el número correlativo de matrícula (ej: jonathan david jimenez quido -> JDJG1).
+        /// Genera el identificador único del estudiante con las primeras letras de sus 2 nombres
+        /// y 2 apellidos más el número correlativo de matrícula (ej: Jonathan David Jimenez Guido -> JDJG1).
         /// </summary>
         public string GenerarCodigoEstudiante(string nombres, string apellidos, int numeroMatricula)
         {
@@ -104,7 +103,7 @@ namespace SistemaAcademico.BLL
         public async Task<(int IdEstudiante, int IdMatricula, string CodigoGenerado)> RegistrarEstudianteYMatriculaAsync(AlumnoRegistroModel model)
         {
             if (model == null)
-                throw new ArgumentNullException(nameof(model), "Los datos del estudiante y matrícula no pueden ser nulos.");
+                throw new Exception("La información del estudiante y matrícula no puede ser nula.");
 
             if (string.IsNullOrWhiteSpace(model.EstudianteNombres))
                 throw new Exception("Debe ingresar los nombres del estudiante.");
@@ -132,10 +131,11 @@ namespace SistemaAcademico.BLL
 
             try
             {
-                int numeroMatricula = await _alumnoDal.ObtenerSiguienteNumeroMatriculaAsync();
+                int correlativo = await _alumnoDal.ObtenerSiguienteCorrelativoEstudianteAsync();
                 if (string.IsNullOrWhiteSpace(model.EstudianteCodigo))
                 {
-                    model.EstudianteCodigo = GenerarCodigoEstudiante(model.EstudianteNombres, model.EstudianteApellidos, numeroMatricula);
+                    string codigo = GenerarCodigoEstudiante(model.EstudianteNombres, model.EstudianteApellidos, correlativo);
+                    model.AsignarCodigo(codigo);
                 }
 
                 var (idEstudiante, idMatricula) = await _alumnoDal.RegistrarEstudianteYMatriculaAsync(model);
@@ -152,7 +152,7 @@ namespace SistemaAcademico.BLL
                 {
                     if (ex.Message.Contains("CodigoEstudiante"))
                         throw new Exception("Ya existe un estudiante registrado con este código de estudiante.");
-                    
+
                     throw new Exception("El estudiante ya se encuentra matriculado en este año académico.");
                 }
 
