@@ -10,57 +10,37 @@ namespace SistemaAcademico.DAL
 {
     public class AlumnoDal
     {
-        public async Task<List<AlumnoEntity>> ListarAsync(string filtro = "", string estado = "")
+        public async Task<List<AlumnoEntity>> ListarAsync(string filtro = "")
         {
             var lista = new List<AlumnoEntity>();
 
-            using SqlConnection cn = await Conexion.AbrirConexionAsync();
+            using SqlConnection cn = Conexion.ObtenerConexion();
+            using SqlCommand cmd = new("dbo.SP_ListarEstudiantes", cn)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
 
-            string sql = @"
-                SELECT 
-                    e.IdEstudiante,
-                    e.CodigoEstudiante,
-                    e.Nombres,
-                    e.Apellidos,
-                    e.FechaNacimiento,
-                    e.Estado,
-                    e.FechaRegistro,
-                    t.IdTutor,
-                    CONCAT(t.Nombres, ' ', t.Apellidos) AS NombreTutor,
-                    t.Telefono AS TelefonoTutor,
-                    t.Cedula AS CedulaTutor
-                FROM dbo.Estudiante e
-                INNER JOIN dbo.Tutor t ON e.IdTutor = t.IdTutor
-                WHERE (@Filtro = '' 
-                   OR e.CodigoEstudiante LIKE '%' + @Filtro + '%'
-                   OR e.Nombres LIKE '%' + @Filtro + '%'
-                   OR e.Apellidos LIKE '%' + @Filtro + '%'
-                   OR t.Cedula LIKE '%' + @Filtro + '%')
-                  AND (@Estado = '' OR e.Estado = @Estado)
-                ORDER BY e.IdEstudiante DESC;";
-
-            using SqlCommand cmd = new(sql, cn);
             cmd.Parameters.Add("@Filtro", SqlDbType.NVarChar, 100).Value = filtro?.Trim() ?? string.Empty;
-            cmd.Parameters.Add("@Estado", SqlDbType.NVarChar, 25).Value = estado?.Trim() ?? string.Empty;
 
+            await cn.OpenAsync();
             using SqlDataReader dr = await cmd.ExecuteReaderAsync();
 
             while (await dr.ReadAsync())
             {
-                var alumno = new AlumnoEntity
-                {
-                    IdEstudiante = Convert.ToInt32(dr["IdEstudiante"]),
-                    CodigoEstudiante = dr["CodigoEstudiante"].ToString() ?? string.Empty,
-                    Nombres = dr["Nombres"].ToString() ?? string.Empty,
-                    Apellidos = dr["Apellidos"].ToString() ?? string.Empty,
-                    FechaNacimiento = Convert.ToDateTime(dr["FechaNacimiento"]),
-                    Estado = dr["Estado"].ToString() ?? "Activo",
-                    FechaRegistro = Convert.ToDateTime(dr["FechaRegistro"]),
-                    IdTutor = Convert.ToInt32(dr["IdTutor"]),
-                    NombreTutor = dr["NombreTutor"].ToString() ?? string.Empty,
-                    TelefonoTutor = dr["TelefonoTutor"] != DBNull.Value ? dr["TelefonoTutor"].ToString() : null,
-                    CedulaTutor = dr["CedulaTutor"] != DBNull.Value ? dr["CedulaTutor"].ToString() : null
-                };
+                AlumnoEntity alumno = new();
+                alumno.AsignarId(Convert.ToInt32(dr["IdEstudiante"]));
+                alumno.CambiarCodigoEstudiante(dr["CodigoEstudiante"].ToString() ?? string.Empty);
+                alumno.CambiarNombres(dr["Nombres"].ToString() ?? string.Empty);
+                alumno.CambiarApellidos(dr["Apellidos"].ToString() ?? string.Empty);
+                alumno.CambiarFechaNacimiento(Convert.ToDateTime(dr["FechaNacimiento"]));
+                alumno.CambiarEstado(dr["Estado"].ToString() ?? "Activo");
+                alumno.AsignarFechaRegistro(Convert.ToDateTime(dr["FechaRegistro"]));
+                alumno.AsignarTutor(
+                    Convert.ToInt32(dr["IdTutor"]),
+                    dr["NombreTutor"].ToString() ?? string.Empty,
+                    dr["TelefonoTutor"] != DBNull.Value ? dr["TelefonoTutor"].ToString() : null,
+                    dr["CedulaTutor"] != DBNull.Value ? dr["CedulaTutor"].ToString() : null
+                );
 
                 lista.Add(alumno);
             }
@@ -72,33 +52,23 @@ namespace SistemaAcademico.DAL
         {
             var lista = new List<AnioAcademicoEntity>();
 
-            using SqlConnection cn = await Conexion.AbrirConexionAsync();
+            using SqlConnection cn = Conexion.ObtenerConexion();
+            using SqlCommand cmd = new("dbo.SP_ListarAniosAcademicos", cn)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
 
-            string sql = @"
-                IF NOT EXISTS (SELECT 1 FROM dbo.AnioAcademico WHERE NombreAnio = '7mo Grado')
-                    INSERT INTO dbo.AnioAcademico (NombreAnio, Ciclo) VALUES ('7mo Grado', 'III Ciclo');
-                IF NOT EXISTS (SELECT 1 FROM dbo.AnioAcademico WHERE NombreAnio = '8vo Grado')
-                    INSERT INTO dbo.AnioAcademico (NombreAnio, Ciclo) VALUES ('8vo Grado', 'III Ciclo');
-                IF NOT EXISTS (SELECT 1 FROM dbo.AnioAcademico WHERE NombreAnio = '9no Grado')
-                    INSERT INTO dbo.AnioAcademico (NombreAnio, Ciclo) VALUES ('9no Grado', 'III Ciclo');
-                IF NOT EXISTS (SELECT 1 FROM dbo.AnioAcademico WHERE NombreAnio = '10mo Grado')
-                    INSERT INTO dbo.AnioAcademico (NombreAnio, Ciclo) VALUES ('10mo Grado', 'IV Ciclo');
-                IF NOT EXISTS (SELECT 1 FROM dbo.AnioAcademico WHERE NombreAnio = '11mo Grado')
-                    INSERT INTO dbo.AnioAcademico (NombreAnio, Ciclo) VALUES ('11mo Grado', 'IV Ciclo');
-
-                SELECT IdAnio, NombreAnio, Ciclo FROM dbo.AnioAcademico ORDER BY IdAnio;";
-
-            using SqlCommand cmd = new(sql, cn);
+            await cn.OpenAsync();
             using SqlDataReader dr = await cmd.ExecuteReaderAsync();
 
             while (await dr.ReadAsync())
             {
-                lista.Add(new AnioAcademicoEntity
-                {
-                    IdAnio = Convert.ToInt32(dr["IdAnio"]),
-                    NombreAnio = dr["NombreAnio"].ToString() ?? string.Empty,
-                    Ciclo = dr["Ciclo"].ToString() ?? string.Empty
-                });
+                AnioAcademicoEntity anio = new();
+                anio.AsignarId(Convert.ToInt32(dr["IdAnio"]));
+                anio.CambiarNombreAnio(dr["NombreAnio"].ToString() ?? string.Empty);
+                anio.CambiarCiclo(dr["Ciclo"].ToString() ?? string.Empty);
+
+                lista.Add(anio);
             }
 
             return lista;
@@ -108,29 +78,23 @@ namespace SistemaAcademico.DAL
         {
             var lista = new List<SeccionEntity>();
 
-            using SqlConnection cn = await Conexion.AbrirConexionAsync();
+            using SqlConnection cn = Conexion.ObtenerConexion();
+            using SqlCommand cmd = new("dbo.SP_ListarSecciones", cn)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
 
-            string sql = @"
-                IF NOT EXISTS (SELECT 1 FROM dbo.Seccion WHERE NombreSeccion = 'A')
-                    INSERT INTO dbo.Seccion (NombreSeccion, CapacidadMaxima) VALUES ('A', 40);
-                IF NOT EXISTS (SELECT 1 FROM dbo.Seccion WHERE NombreSeccion = 'B')
-                    INSERT INTO dbo.Seccion (NombreSeccion, CapacidadMaxima) VALUES ('B', 40);
-                IF NOT EXISTS (SELECT 1 FROM dbo.Seccion WHERE NombreSeccion = 'C')
-                    INSERT INTO dbo.Seccion (NombreSeccion, CapacidadMaxima) VALUES ('C', 40);
-
-                SELECT IdSeccion, NombreSeccion, CapacidadMaxima FROM dbo.Seccion ORDER BY NombreSeccion;";
-
-            using SqlCommand cmd = new(sql, cn);
+            await cn.OpenAsync();
             using SqlDataReader dr = await cmd.ExecuteReaderAsync();
 
             while (await dr.ReadAsync())
             {
-                lista.Add(new SeccionEntity
-                {
-                    IdSeccion = Convert.ToInt32(dr["IdSeccion"]),
-                    NombreSeccion = dr["NombreSeccion"].ToString() ?? string.Empty,
-                    CapacidadMaxima = dr["CapacidadMaxima"] != DBNull.Value ? Convert.ToInt32(dr["CapacidadMaxima"]) : 40
-                });
+                SeccionEntity seccion = new();
+                seccion.AsignarId(Convert.ToInt32(dr["IdSeccion"]));
+                seccion.CambiarNombreSeccion(dr["NombreSeccion"].ToString() ?? string.Empty);
+                seccion.AsignarCapacidadMaxima(dr["CapacidadMaxima"] != DBNull.Value ? Convert.ToInt32(dr["CapacidadMaxima"]) : 40);
+
+                lista.Add(seccion);
             }
 
             return lista;
@@ -140,36 +104,15 @@ namespace SistemaAcademico.DAL
         {
             var lista = new List<SeccionEntity>();
 
-            using SqlConnection cn = await Conexion.AbrirConexionAsync();
+            using SqlConnection cn = Conexion.ObtenerConexion();
+            using SqlCommand cmd = new("dbo.SP_ListarSeccionesConDisponibilidad", cn)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
 
-            string sql = @"
-                IF NOT EXISTS (SELECT 1 FROM dbo.Seccion WHERE NombreSeccion = 'A')
-                    INSERT INTO dbo.Seccion (NombreSeccion, CapacidadMaxima) VALUES ('A', 40);
-                IF NOT EXISTS (SELECT 1 FROM dbo.Seccion WHERE NombreSeccion = 'B')
-                    INSERT INTO dbo.Seccion (NombreSeccion, CapacidadMaxima) VALUES ('B', 40);
-                IF NOT EXISTS (SELECT 1 FROM dbo.Seccion WHERE NombreSeccion = 'C')
-                    INSERT INTO dbo.Seccion (NombreSeccion, CapacidadMaxima) VALUES ('C', 40);
-
-                SELECT 
-                    s.IdSeccion,
-                    s.NombreSeccion,
-                    s.CapacidadMaxima,
-                    COUNT(m.IdMatricula) AS Matriculados,
-                    (s.CapacidadMaxima - COUNT(m.IdMatricula)) AS CuposDisponibles
-                FROM dbo.Seccion s
-                LEFT JOIN dbo.Matricula m 
-                    ON s.IdSeccion = m.IdSeccion 
-                   AND m.IdAnio = @IdAnio 
-                   AND m.EstadoMatricula <> 'Cancelado'
-                GROUP BY s.IdSeccion, s.NombreSeccion, s.CapacidadMaxima
-                ORDER BY 
-                    CASE WHEN COUNT(m.IdMatricula) >= s.CapacidadMaxima THEN 1 ELSE 0 END ASC,
-                    COUNT(m.IdMatricula) ASC, 
-                    s.NombreSeccion ASC;";
-
-            using SqlCommand cmd = new(sql, cn);
             cmd.Parameters.Add("@IdAnio", SqlDbType.Int).Value = idAnio;
 
+            await cn.OpenAsync();
             using SqlDataReader dr = await cmd.ExecuteReaderAsync();
 
             while (await dr.ReadAsync())
@@ -178,14 +121,14 @@ namespace SistemaAcademico.DAL
                 int matriculados = dr["Matriculados"] != DBNull.Value ? Convert.ToInt32(dr["Matriculados"]) : 0;
                 int cupos = dr["CuposDisponibles"] != DBNull.Value ? Convert.ToInt32(dr["CuposDisponibles"]) : (capacidad - matriculados);
 
-                lista.Add(new SeccionEntity
-                {
-                    IdSeccion = Convert.ToInt32(dr["IdSeccion"]),
-                    NombreSeccion = dr["NombreSeccion"].ToString() ?? string.Empty,
-                    CapacidadMaxima = capacidad,
-                    Matriculados = matriculados,
-                    CuposDisponibles = cupos
-                });
+                SeccionEntity seccion = new();
+                seccion.AsignarId(Convert.ToInt32(dr["IdSeccion"]));
+                seccion.CambiarNombreSeccion(dr["NombreSeccion"].ToString() ?? string.Empty);
+                seccion.AsignarCapacidadMaxima(capacidad);
+                seccion.AsignarMatriculados(matriculados);
+                seccion.AsignarCuposDisponibles(cupos);
+
+                lista.Add(seccion);
             }
 
             return lista;
@@ -195,68 +138,25 @@ namespace SistemaAcademico.DAL
         {
             var lista = new List<AsignaturaEntity>();
 
-            using SqlConnection cn = await Conexion.AbrirConexionAsync();
+            using SqlConnection cn = Conexion.ObtenerConexion();
+            using SqlCommand cmd = new("dbo.SP_ListarAsignaturasPorAnio", cn)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
 
-            string sql = @"
-                IF NOT EXISTS (SELECT 1 FROM dbo.Grado_Asignatura WHERE IdAnio = @IdAnio)
-                BEGIN
-                    DECLARE @Asignaturas TABLE (Nombre NVARCHAR(100));
-                    INSERT INTO @Asignaturas (Nombre) VALUES 
-                        ('Matemáticas'), ('Lengua y Literatura'), ('Ciencias Naturales'),
-                        ('Geografía'), ('Historia'), ('Inglés'), ('Educación Física'),
-                        ('Biología'), ('Física'), ('Química'), ('Filosofía'), ('Sociología'), ('Economía');
-
-                    INSERT INTO dbo.Asignatura (NombreAsignatura)
-                    SELECT A.Nombre FROM @Asignaturas A
-                    WHERE NOT EXISTS (SELECT 1 FROM dbo.Asignatura WHERE NombreAsignatura = A.Nombre);
-
-                    -- Asociar III Ciclo (7mo, 8vo, 9no)
-                    INSERT INTO dbo.Grado_Asignatura (IdAnio, IdAsignatura, HorasSemanales)
-                    SELECT an.IdAnio, asig.IdAsignatura, 4
-                    FROM dbo.AnioAcademico an
-                    CROSS JOIN dbo.Asignatura asig
-                    WHERE an.IdAnio = @IdAnio 
-                      AND an.Ciclo = 'III Ciclo'
-                      AND asig.NombreAsignatura IN ('Matemáticas', 'Lengua y Literatura', 'Ciencias Naturales', 'Geografía', 'Historia', 'Inglés', 'Educación Física')
-                      AND NOT EXISTS (
-                          SELECT 1 FROM dbo.Grado_Asignatura ga WHERE ga.IdAnio = an.IdAnio AND ga.IdAsignatura = asig.IdAsignatura
-                      );
-
-                    -- Asociar IV Ciclo (10mo, 11mo)
-                    INSERT INTO dbo.Grado_Asignatura (IdAnio, IdAsignatura, HorasSemanales)
-                    SELECT an.IdAnio, asig.IdAsignatura, 4
-                    FROM dbo.AnioAcademico an
-                    CROSS JOIN dbo.Asignatura asig
-                    WHERE an.IdAnio = @IdAnio 
-                      AND an.Ciclo = 'IV Ciclo'
-                      AND asig.NombreAsignatura IN ('Matemáticas', 'Lengua y Literatura', 'Biología', 'Física', 'Química', 'Filosofía', 'Sociología', 'Economía', 'Inglés', 'Educación Física')
-                      AND NOT EXISTS (
-                          SELECT 1 FROM dbo.Grado_Asignatura ga WHERE ga.IdAnio = an.IdAnio AND ga.IdAsignatura = asig.IdAsignatura
-                      );
-                END;
-
-                SELECT 
-                    a.IdAsignatura,
-                    a.NombreAsignatura,
-                    ga.HorasSemanales
-                FROM dbo.Grado_Asignatura ga
-                INNER JOIN dbo.Asignatura a ON ga.IdAsignatura = a.IdAsignatura
-                WHERE ga.IdAnio = @IdAnio
-                ORDER BY a.NombreAsignatura;";
-
-            using SqlCommand cmd = new(sql, cn);
             cmd.Parameters.Add("@IdAnio", SqlDbType.Int).Value = idAnio;
 
+            await cn.OpenAsync();
             using SqlDataReader dr = await cmd.ExecuteReaderAsync();
 
             while (await dr.ReadAsync())
             {
-                lista.Add(new AsignaturaEntity
-                {
-                    IdAsignatura = Convert.ToInt32(dr["IdAsignatura"]),
-                    NombreAsignatura = dr["NombreAsignatura"].ToString() ?? string.Empty,
-                    HorasSemanales = dr["HorasSemanales"] != DBNull.Value ? Convert.ToInt32(dr["HorasSemanales"]) : 4
-                });
+                AsignaturaEntity asignatura = new();
+                asignatura.AsignarId(Convert.ToInt32(dr["IdAsignatura"]));
+                asignatura.CambiarNombreAsignatura(dr["NombreAsignatura"].ToString() ?? string.Empty);
+                asignatura.AsignarHorasSemanales(dr["HorasSemanales"] != DBNull.Value ? Convert.ToInt32(dr["HorasSemanales"]) : 4);
+
+                lista.Add(asignatura);
             }
 
             return lista;
@@ -264,183 +164,46 @@ namespace SistemaAcademico.DAL
 
         public async Task<string> CambiarEstadoEstudianteAsync(int idEstudiante, string? nuevoEstado = null)
         {
-            using SqlConnection cn = await Conexion.AbrirConexionAsync();
+            using SqlConnection cn = Conexion.ObtenerConexion();
+            using SqlCommand cmd = new("dbo.SP_CambiarEstadoEstudiante", cn)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
 
-            string sql = @"
-                IF @NuevoEstado IS NULL OR @NuevoEstado = ''
-                BEGIN
-                    UPDATE dbo.Estudiante 
-                    SET Estado = CASE WHEN Estado = 'Activo' THEN 'Inactivo' ELSE 'Activo' END 
-                    WHERE IdEstudiante = @IdEstudiante;
-                END
-                ELSE
-                BEGIN
-                    UPDATE dbo.Estudiante 
-                    SET Estado = @NuevoEstado 
-                    WHERE IdEstudiante = @IdEstudiante;
-                END;
-
-                SELECT Estado FROM dbo.Estudiante WHERE IdEstudiante = @IdEstudiante;";
-
-            using SqlCommand cmd = new(sql, cn);
             cmd.Parameters.Add("@IdEstudiante", SqlDbType.Int).Value = idEstudiante;
             cmd.Parameters.Add("@NuevoEstado", SqlDbType.NVarChar, 25).Value = (object?)nuevoEstado ?? DBNull.Value;
 
+            await cn.OpenAsync();
             object? result = await cmd.ExecuteScalarAsync();
             return result?.ToString() ?? "Activo";
         }
 
-        public async Task<int> ObtenerSiguienteNumeroMatriculaAsync()
-        {
-            using SqlConnection cn = await Conexion.AbrirConexionAsync();
-            using SqlCommand cmd = new("SELECT ISNULL(MAX(IdMatricula), 0) + 1 FROM dbo.Matricula;", cn);
-
-            object? result = await cmd.ExecuteScalarAsync();
-            return result != null && result != DBNull.Value ? Convert.ToInt32(result) : 1;
-        }
-
         public async Task<int> ObtenerSiguienteCorrelativoEstudianteAsync()
         {
-            using SqlConnection cn = await Conexion.AbrirConexionAsync();
+            using SqlConnection cn = Conexion.ObtenerConexion();
             using SqlCommand cmd = new("dbo.SP_ObtenerSiguienteCorrelativoEstudiante", cn)
             {
                 CommandType = CommandType.StoredProcedure
             };
 
+            await cn.OpenAsync();
             object? result = await cmd.ExecuteScalarAsync();
-            return result != null && result != DBNull.Value ? Convert.ToInt32(result) : 1;
+            return (result != null && result != DBNull.Value) ? Convert.ToInt32(result) : 1;
+        }
+
+        public async Task<int> ObtenerSiguienteNumeroMatriculaAsync()
+        {
+            return await ObtenerSiguienteCorrelativoEstudianteAsync();
         }
 
         public async Task<(int IdEstudiante, int IdMatricula)> RegistrarEstudianteYMatriculaAsync(AlumnoRegistroModel model)
         {
-            using SqlConnection cn = await Conexion.AbrirConexionAsync();
-
-            // 1. Asegurar catálogo de Años Académicos y Secciones en la base actual
-            using (SqlCommand cmdSeed = new(@"
-                IF NOT EXISTS (SELECT 1 FROM dbo.AnioAcademico WHERE NombreAnio = '7mo Grado')
-                    INSERT INTO dbo.AnioAcademico (NombreAnio, Ciclo) VALUES ('7mo Grado', 'III Ciclo');
-                IF NOT EXISTS (SELECT 1 FROM dbo.AnioAcademico WHERE NombreAnio = '8vo Grado')
-                    INSERT INTO dbo.AnioAcademico (NombreAnio, Ciclo) VALUES ('8vo Grado', 'III Ciclo');
-                IF NOT EXISTS (SELECT 1 FROM dbo.AnioAcademico WHERE NombreAnio = '9no Grado')
-                    INSERT INTO dbo.AnioAcademico (NombreAnio, Ciclo) VALUES ('9no Grado', 'III Ciclo');
-                IF NOT EXISTS (SELECT 1 FROM dbo.AnioAcademico WHERE NombreAnio = '10mo Grado')
-                    INSERT INTO dbo.AnioAcademico (NombreAnio, Ciclo) VALUES ('10mo Grado', 'IV Ciclo');
-                IF NOT EXISTS (SELECT 1 FROM dbo.AnioAcademico WHERE NombreAnio = '11mo Grado')
-                    INSERT INTO dbo.AnioAcademico (NombreAnio, Ciclo) VALUES ('11mo Grado', 'IV Ciclo');
-
-                IF NOT EXISTS (SELECT 1 FROM dbo.Seccion WHERE NombreSeccion = 'A')
-                    INSERT INTO dbo.Seccion (NombreSeccion, CapacidadMaxima) VALUES ('A', 40);
-                IF NOT EXISTS (SELECT 1 FROM dbo.Seccion WHERE NombreSeccion = 'B')
-                    INSERT INTO dbo.Seccion (NombreSeccion, CapacidadMaxima) VALUES ('B', 40);
-                IF NOT EXISTS (SELECT 1 FROM dbo.Seccion WHERE NombreSeccion = 'C')
-                    INSERT INTO dbo.Seccion (NombreSeccion, CapacidadMaxima) VALUES ('C', 40);", cn))
+            using SqlConnection cn = Conexion.ObtenerConexion();
+            using SqlCommand cmd = new("dbo.SP_RegistrarEstudianteYMatricula", cn)
             {
-                await cmdSeed.ExecuteNonQueryAsync();
-            }
+                CommandType = CommandType.StoredProcedure
+            };
 
-            // 2. Si tablas o procedimientos quedaron creados en master por error al ejecutar scripts,
-            // sincronizar también en master o eliminar el SP de master para que no secuestre la ejecución
-            try
-            {
-                using (SqlCommand cmdMaster = new(@"
-                    IF EXISTS (SELECT 1 FROM master.sys.procedures WHERE name = 'SP_RegistrarEstudianteYMatricula')
-                    BEGIN
-                        DROP PROCEDURE master.dbo.SP_RegistrarEstudianteYMatricula;
-                    END;
-                    IF EXISTS (SELECT 1 FROM master.sys.tables WHERE name = 'AnioAcademico')
-                    BEGIN
-                        IF NOT EXISTS (SELECT 1 FROM master.dbo.AnioAcademico WHERE NombreAnio = '7mo Grado')
-                            INSERT INTO master.dbo.AnioAcademico (NombreAnio, Ciclo) VALUES ('7mo Grado', 'III Ciclo');
-                        IF NOT EXISTS (SELECT 1 FROM master.dbo.AnioAcademico WHERE NombreAnio = '8vo Grado')
-                            INSERT INTO master.dbo.AnioAcademico (NombreAnio, Ciclo) VALUES ('8vo Grado', 'III Ciclo');
-                        IF NOT EXISTS (SELECT 1 FROM master.dbo.AnioAcademico WHERE NombreAnio = '9no Grado')
-                            INSERT INTO master.dbo.AnioAcademico (NombreAnio, Ciclo) VALUES ('9no Grado', 'III Ciclo');
-                        IF NOT EXISTS (SELECT 1 FROM master.dbo.AnioAcademico WHERE NombreAnio = '10mo Grado')
-                            INSERT INTO master.dbo.AnioAcademico (NombreAnio, Ciclo) VALUES ('10mo Grado', 'IV Ciclo');
-                        IF NOT EXISTS (SELECT 1 FROM master.dbo.AnioAcademico WHERE NombreAnio = '11mo Grado')
-                            INSERT INTO master.dbo.AnioAcademico (NombreAnio, Ciclo) VALUES ('11mo Grado', 'IV Ciclo');
-                    END;", cn))
-                {
-                    await cmdMaster.ExecuteNonQueryAsync();
-                }
-            }
-            catch
-            {
-                // Ignorar si el usuario no tiene permisos sobre master
-            }
-
-            // 3. Ejecución directa y atómica en la base de datos actual con transacción
-            // Esto garantiza que la consulta se ejecute SIEMPRE en la base de datos de la conexión
-            // y no sea desviada por SQL Server hacia la base master.
-            int nuevoIdEstudiante = 0;
-            int nuevoIdMatricula = 0;
-
-            string sqlRegistro = @"
-                SET NOCOUNT ON;
-                
-                -- Validar Control de Cupos (< 40 por sección y año)
-                DECLARE @CuposOcupados INT = (
-                    SELECT COUNT(1) 
-                    FROM dbo.Matricula 
-                    WHERE IdAnio = @IdAnio AND IdSeccion = @IdSeccion AND EstadoMatricula <> 'Cancelado'
-                );
-
-                DECLARE @CapacidadMax INT = (
-                    SELECT CapacidadMaxima FROM dbo.Seccion WHERE IdSeccion = @IdSeccion
-                );
-                IF @CapacidadMax IS NULL SET @CapacidadMax = 40;
-
-                IF @CuposOcupados >= @CapacidadMax
-                BEGIN
-                    RAISERROR('La sección seleccionada ha alcanzado su capacidad máxima permitida de %d estudiantes.', 16, 1, @CapacidadMax);
-                    RETURN;
-                END;
-
-                -- Gestionar Tutor (Insertar o reutilizar por Cédula)
-                DECLARE @IdTutor INT = (SELECT TOP 1 IdTutor FROM dbo.Tutor WHERE Cedula = @TutorCedula);
-                IF @IdTutor IS NULL
-                BEGIN
-                    INSERT INTO dbo.Tutor (Nombres, Apellidos, Telefono, Cedula, Direccion)
-                    VALUES (@TutorNombres, @TutorApellidos, @TutorTelefono, @TutorCedula, @TutorDireccion);
-                    SET @IdTutor = SCOPE_IDENTITY();
-                END
-                ELSE
-                BEGIN
-                    UPDATE dbo.Tutor 
-                    SET Nombres = @TutorNombres, Apellidos = @TutorApellidos, Telefono = @TutorTelefono, Direccion = @TutorDireccion
-                    WHERE IdTutor = @IdTutor;
-                END;
-
-                -- Registrar Estudiante con el estado seleccionado
-                INSERT INTO dbo.Estudiante (CodigoEstudiante, Nombres, Apellidos, FechaNacimiento, IdTutor, Estado, FechaRegistro)
-                VALUES (@EstudianteCodigo, @EstudianteNombres, @EstudianteApellidos, @EstudianteFechaNac, @IdTutor, @EstadoEstudiante, GETDATE());
-                SET @NuevoIdEstudiante = SCOPE_IDENTITY();
-
-                -- Registrar Matrícula
-                INSERT INTO dbo.Matricula (IdEstudiante, IdAnio, IdSeccion, FechaMatricula, EstadoMatricula)
-                VALUES (@NuevoIdEstudiante, @IdAnio, @IdSeccion, GETDATE(), 'Activo');
-                SET @NuevoIdMatricula = SCOPE_IDENTITY();
-
-                -- Vincular Asignaturas del año académico si existen
-                IF EXISTS (SELECT 1 FROM dbo.Grado_Asignatura WHERE IdAnio = @IdAnio)
-                BEGIN
-                    INSERT INTO dbo.Calificacion (IdMatricula, IdAsignatura, NotaI_Semestre, NotaII_Semestre, NotaFinal, NotaReparacion, EstadoAsignatura, Observacion)
-                    SELECT 
-                        @NuevoIdMatricula,
-                        ga.IdAsignatura,
-                        NULL,
-                        NULL,
-                        NULL,
-                        NULL,
-                        'En proceso',
-                        'Inscripción inicial'
-                    FROM dbo.Grado_Asignatura ga
-                    WHERE ga.IdAnio = @IdAnio;
-                END;
-
-                SELECT @NuevoIdEstudiante AS IdEstudiante, @NuevoIdMatricula AS IdMatricula;";
-
-            using SqlCommand cmd = new(sqlRegistro, cn);
             cmd.Parameters.Add("@TutorNombres", SqlDbType.NVarChar, 100).Value = model.TutorNombres;
             cmd.Parameters.Add("@TutorApellidos", SqlDbType.NVarChar, 100).Value = model.TutorApellidos;
             cmd.Parameters.Add("@TutorTelefono", SqlDbType.NVarChar, 20).Value = model.TutorTelefono;
@@ -451,7 +214,6 @@ namespace SistemaAcademico.DAL
             cmd.Parameters.Add("@EstudianteNombres", SqlDbType.NVarChar, 100).Value = model.EstudianteNombres;
             cmd.Parameters.Add("@EstudianteApellidos", SqlDbType.NVarChar, 100).Value = model.EstudianteApellidos;
             cmd.Parameters.Add("@EstudianteFechaNac", SqlDbType.Date).Value = model.EstudianteFechaNac;
-            cmd.Parameters.Add("@EstadoEstudiante", SqlDbType.NVarChar, 25).Value = string.IsNullOrWhiteSpace(model.Estado) ? "Activo" : model.Estado;
 
             cmd.Parameters.Add("@IdAnio", SqlDbType.Int).Value = model.IdAnio;
             cmd.Parameters.Add("@IdSeccion", SqlDbType.Int).Value = model.IdSeccion;
@@ -468,23 +230,11 @@ namespace SistemaAcademico.DAL
             };
             cmd.Parameters.Add(paramNuevoIdMatricula);
 
-            using (SqlDataReader dr = await cmd.ExecuteReaderAsync())
-            {
-                if (await dr.ReadAsync())
-                {
-                    nuevoIdEstudiante = Convert.ToInt32(dr["IdEstudiante"]);
-                    nuevoIdMatricula = Convert.ToInt32(dr["IdMatricula"]);
-                }
-            }
+            await cn.OpenAsync();
+            await cmd.ExecuteNonQueryAsync();
 
-            if (nuevoIdEstudiante == 0 && paramNuevoIdEstudiante.Value != DBNull.Value)
-            {
-                nuevoIdEstudiante = Convert.ToInt32(paramNuevoIdEstudiante.Value);
-            }
-            if (nuevoIdMatricula == 0 && paramNuevoIdMatricula.Value != DBNull.Value)
-            {
-                nuevoIdMatricula = Convert.ToInt32(paramNuevoIdMatricula.Value);
-            }
+            int nuevoIdEstudiante = (paramNuevoIdEstudiante.Value != DBNull.Value) ? Convert.ToInt32(paramNuevoIdEstudiante.Value) : 0;
+            int nuevoIdMatricula = (paramNuevoIdMatricula.Value != DBNull.Value) ? Convert.ToInt32(paramNuevoIdMatricula.Value) : 0;
 
             return (nuevoIdEstudiante, nuevoIdMatricula);
         }
