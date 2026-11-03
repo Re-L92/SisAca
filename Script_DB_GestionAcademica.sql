@@ -1,4 +1,4 @@
-
+﻿
 
 IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'DB_GestionAcademica')
 BEGIN
@@ -701,40 +701,55 @@ END;
 GO
 
 -- 3.4 SP_ListarMatriculas
-CREATE PROCEDURE dbo.SP_ListarMatriculas
+CREATE OR ALTER PROCEDURE dbo.SP_ListarMatriculas
     @IdAnio INT = 0,
     @IdSeccion INT = 0,
     @Filtro NVARCHAR(100) = ''
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    WITH UltimaMatricula AS (
+        SELECT 
+            m.IdMatricula,
+            m.IdEstudiante,
+            m.IdAnio,
+            m.IdSeccion,
+            m.FechaMatricula,
+            m.EstadoMatricula,
+            ROW_NUMBER() OVER (PARTITION BY m.IdEstudiante ORDER BY m.IdMatricula DESC) AS Fila
+        FROM dbo.Matricula m
+        WHERE m.EstadoMatricula <> 'Cancelado'
+    )
     SELECT 
-        m.IdMatricula,
+        um.IdMatricula,
         e.IdEstudiante,
         e.CodigoEstudiante,
         CONCAT(e.Nombres, ' ', e.Apellidos) AS NombreEstudiante,
+        e.Estado AS EstadoEstudiante,
         an.IdAnio,
         an.NombreAnio,
         an.Ciclo,
         sec.IdSeccion,
         sec.NombreSeccion,
-        m.FechaMatricula,
-        m.EstadoMatricula,
-        ISNULL(CONCAT(doc.Nombres, ' ', doc.Apellidos), 'Sin Docente GuÃ­a') AS DocenteGuia,
+        um.FechaMatricula,
+        um.EstadoMatricula,
+        ISNULL(CONCAT(doc.Nombres, ' ', doc.Apellidos), 'Sin Docente Guía') AS DocenteGuia,
         ISNULL(aus.Aula, 'Por Asignar') AS Aula
-    FROM dbo.Matricula m
-    INNER JOIN dbo.Estudiante e ON m.IdEstudiante = e.IdEstudiante
-    INNER JOIN dbo.AnioAcademico an ON m.IdAnio = an.IdAnio
-    INNER JOIN dbo.Seccion sec ON m.IdSeccion = sec.IdSeccion
-    LEFT JOIN dbo.Aula_Seccion aus ON aus.IdAnio = m.IdAnio AND aus.IdSeccion = m.IdSeccion
+    FROM UltimaMatricula um
+    INNER JOIN dbo.Estudiante e ON um.IdEstudiante = e.IdEstudiante
+    INNER JOIN dbo.AnioAcademico an ON um.IdAnio = an.IdAnio
+    INNER JOIN dbo.Seccion sec ON um.IdSeccion = sec.IdSeccion
+    LEFT JOIN dbo.Aula_Seccion aus ON aus.IdAnio = um.IdAnio AND aus.IdSeccion = um.IdSeccion
     LEFT JOIN dbo.Docente doc ON aus.IdDocenteGuia = doc.IdDocente
-    WHERE (@IdAnio = 0 OR m.IdAnio = @IdAnio)
-      AND (@IdSeccion = 0 OR m.IdSeccion = @IdSeccion)
+    WHERE um.Fila = 1
+      AND (@IdAnio = 0 OR um.IdAnio = @IdAnio)
+      AND (@IdSeccion = 0 OR um.IdSeccion = @IdSeccion)
       AND (@Filtro = '' 
            OR e.CodigoEstudiante LIKE '%' + @Filtro + '%'
            OR e.Nombres LIKE '%' + @Filtro + '%'
            OR e.Apellidos LIKE '%' + @Filtro + '%')
-    ORDER BY m.IdMatricula DESC;
+    ORDER BY um.IdMatricula DESC;
 END;
 GO
 
@@ -1126,3 +1141,207 @@ WHERE an.Ciclo = 'IV Ciclo'
 GO
 
 
+
+
+-- =========================================================================
+-- 4. PROCEDIMIENTOS ALMACENADOS PARA EL MÓDULO DE MATRÍCULAS Y PROMOCIÓN
+-- =========================================================================
+
+-- 4.1 Ajuste de Restricción para permitir histórico y repetición de año escolar
+IF EXISTS (SELECT 1 FROM sys.key_constraints WHERE name = 'UQ_Estudiante_Anio')
+BEGIN
+    ALTER TABLE dbo.Matricula DROP CONSTRAINT UQ_Estudiante_Anio;
+END;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UQ_Estudiante_Anio_Activo')
+BEGIN
+    CREATE UNIQUE NONCLUSTERED INDEX UQ_Estudiante_Anio_Activo 
+    ON dbo.Matricula (IdEstudiante, IdAnio) 
+    WHERE EstadoMatricula = 'Activo';
+END;
+GO
+
+-- 4.2 SP_MatricularSiguienteAnio (Promoción y avance de grado curricular)
+CREATE OR ALTER PROCEDURE dbo.SP_MatricularSiguienteAnio
+    @IdMatriculaActual INT,
+    @IdSeccionNueva INT,
+    @NuevoIdMatricula INT OUTPUT,
+    @MensajeResultado NVARCHAR(200) OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRANSACTION;
+    BEGIN TRY
+        DECLARE @IdEstudiante INT;
+        DECLARE @IdAnioActual INT;
+        DECLARE @NombreAnioActual NVARCHAR(50);
+
+        SELECT @IdEstudiante = m.IdEstudiante, 
+               @IdAnioActual = m.IdAnio, 
+               @NombreAnioActual = a.NombreAnio
+        FROM dbo.Matricula m
+        INNER JOIN dbo.AnioAcademico a ON m.IdAnio = a.IdAnio
+        WHERE m.IdMatricula = @IdMatriculaActual;
+
+        IF @IdEstudiante IS NULL
+        BEGIN
+            RAISERROR('No se encontró el registro de matrícula especificado.', 16, 1);
+        END
+
+        -- 1. Validar que no haya calificaciones pendientes
+        DECLARE @Pendientes INT = (SELECT COUNT(1) FROM dbo.Calificacion WHERE IdMatricula = @IdMatriculaActual AND EstadoAsignatura = 'En proceso');
+        IF @Pendientes > 0
+        BEGIN
+            RAISERROR('No se puede matricular al siguiente año: existen asignaturas con calificaciones incompletas.', 16, 1);
+        END
+
+        -- 2. Validar que todas las asignaturas estén Aprobadas
+        DECLARE @Reprobadas INT = (SELECT COUNT(1) FROM dbo.Calificacion WHERE IdMatricula = @IdMatriculaActual AND EstadoAsignatura IN ('Reprobada', 'Reparación'));
+        IF @Reprobadas > 0
+        BEGIN
+            RAISERROR('No se puede matricular al siguiente año: el estudiante tiene asignaturas reprobadas o pendientes de examen de reparación.', 16, 1);
+        END
+
+        -- 3. Caso especial: Si ya completó 11mo Grado (5to Año)
+        IF @NombreAnioActual = '11mo Grado' OR @IdAnioActual = 5
+        BEGIN
+            UPDATE dbo.Matricula SET EstadoMatricula = 'Estudiante Graduado' WHERE IdMatricula = @IdMatriculaActual;
+            UPDATE dbo.Estudiante SET Estado = 'Estudiante Graduado' WHERE IdEstudiante = @IdEstudiante;
+            SET @NuevoIdMatricula = @IdMatriculaActual;
+            SET @MensajeResultado = '¡Felicidades, estudiante graduado!';
+            COMMIT TRANSACTION;
+            RETURN;
+        END
+
+        -- 4. Calcular el siguiente año académico
+        DECLARE @IdAnioNuevo INT = @IdAnioActual + 1;
+        DECLARE @NombreAnioNuevo NVARCHAR(50) = (SELECT NombreAnio FROM dbo.AnioAcademico WHERE IdAnio = @IdAnioNuevo);
+
+        IF @NombreAnioNuevo IS NULL
+        BEGIN
+            RAISERROR('No existe un año académico consecutivo registrado.', 16, 1);
+        END
+
+        -- 5. Validar cupo en la nueva sección
+        DECLARE @CuposOcupados INT = (
+            SELECT COUNT(1) FROM dbo.Matricula 
+            WHERE IdAnio = @IdAnioNuevo AND IdSeccion = @IdSeccionNueva AND EstadoMatricula = 'Activo'
+        );
+        DECLARE @CapacidadMax INT = (SELECT CapacidadMaxima FROM dbo.Seccion WHERE IdSeccion = @IdSeccionNueva);
+        IF @CapacidadMax IS NULL SET @CapacidadMax = 40;
+
+        IF @CuposOcupados >= @CapacidadMax
+        BEGIN
+            RAISERROR('La sección seleccionada para el nuevo año ha alcanzado su capacidad máxima permitida (%d alumnos).', 16, 1, @CapacidadMax);
+        END
+
+        -- 6. Actualizar matrícula anterior a Promovido
+        UPDATE dbo.Matricula SET EstadoMatricula = 'Promovido' WHERE IdMatricula = @IdMatriculaActual;
+
+        -- 7. Insertar nueva matrícula
+        INSERT INTO dbo.Matricula (IdEstudiante, IdAnio, IdSeccion, FechaMatricula, EstadoMatricula)
+        VALUES (@IdEstudiante, @IdAnioNuevo, @IdSeccionNueva, GETDATE(), 'Activo');
+        SET @NuevoIdMatricula = SCOPE_IDENTITY();
+
+        -- 8. Inicializar calificaciones de la malla curricular del nuevo año
+        INSERT INTO dbo.Calificacion (IdMatricula, IdAsignatura, NotaI_Semestre, NotaII_Semestre, NotaFinal, NotaReparacion, EstadoAsignatura, Observacion)
+        SELECT 
+            @NuevoIdMatricula,
+            ga.IdAsignatura,
+            NULL,
+            NULL,
+            NULL,
+            NULL,
+            'En proceso',
+            'Inscripción de nuevo año académico'
+        FROM dbo.Grado_Asignatura ga
+        WHERE ga.IdAnio = @IdAnioNuevo;
+
+        -- 9. Actualizar estado del estudiante
+        UPDATE dbo.Estudiante SET Estado = 'Activo' WHERE IdEstudiante = @IdEstudiante;
+
+        SET @MensajeResultado = CONCAT('¡Estudiante promovido y matriculado exitosamente en ', @NombreAnioNuevo, '!');
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END;
+GO
+
+-- 4.3 SP_MatricularMismoAnio (Repetición de año escolar)
+CREATE OR ALTER PROCEDURE dbo.SP_MatricularMismoAnio
+    @IdMatriculaActual INT,
+    @IdSeccionNueva INT,
+    @NuevoIdMatricula INT OUTPUT,
+    @MensajeResultado NVARCHAR(200) OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRANSACTION;
+    BEGIN TRY
+        DECLARE @IdEstudiante INT;
+        DECLARE @IdAnioActual INT;
+        DECLARE @NombreAnioActual NVARCHAR(50);
+
+        SELECT @IdEstudiante = m.IdEstudiante, 
+               @IdAnioActual = m.IdAnio, 
+               @NombreAnioActual = a.NombreAnio
+        FROM dbo.Matricula m
+        INNER JOIN dbo.AnioAcademico a ON m.IdAnio = a.IdAnio
+        WHERE m.IdMatricula = @IdMatriculaActual;
+
+        IF @IdEstudiante IS NULL
+        BEGIN
+            RAISERROR('No se encontró el registro de matrícula especificado.', 16, 1);
+        END
+
+        -- 1. Validar cupo en la sección seleccionada
+        DECLARE @CuposOcupados INT = (
+            SELECT COUNT(1) FROM dbo.Matricula 
+            WHERE IdAnio = @IdAnioActual AND IdSeccion = @IdSeccionNueva AND EstadoMatricula = 'Activo' AND IdMatricula <> @IdMatriculaActual
+        );
+        DECLARE @CapacidadMax INT = (SELECT CapacidadMaxima FROM dbo.Seccion WHERE IdSeccion = @IdSeccionNueva);
+        IF @CapacidadMax IS NULL SET @CapacidadMax = 40;
+
+        IF @CuposOcupados >= @CapacidadMax
+        BEGIN
+            RAISERROR('La sección seleccionada ha alcanzado su capacidad máxima permitida (%d alumnos).', 16, 1, @CapacidadMax);
+        END
+
+        -- 2. Actualizar matrícula anterior a Repite Año
+        UPDATE dbo.Matricula SET EstadoMatricula = 'Repite Año' WHERE IdMatricula = @IdMatriculaActual;
+
+        -- 3. Insertar nueva matrícula para el mismo año (repite año)
+        INSERT INTO dbo.Matricula (IdEstudiante, IdAnio, IdSeccion, FechaMatricula, EstadoMatricula)
+        VALUES (@IdEstudiante, @IdAnioActual, @IdSeccionNueva, GETDATE(), 'Activo');
+        SET @NuevoIdMatricula = SCOPE_IDENTITY();
+
+        -- 4. Inicializar nuevas calificaciones para el ciclo que repite
+        INSERT INTO dbo.Calificacion (IdMatricula, IdAsignatura, NotaI_Semestre, NotaII_Semestre, NotaFinal, NotaReparacion, EstadoAsignatura, Observacion)
+        SELECT 
+            @NuevoIdMatricula,
+            ga.IdAsignatura,
+            NULL,
+            NULL,
+            NULL,
+            NULL,
+            'En proceso',
+            'Repitiendo año académico'
+        FROM dbo.Grado_Asignatura ga
+        WHERE ga.IdAnio = @IdAnioActual;
+
+        -- 5. Actualizar estado del estudiante a Activo
+        UPDATE dbo.Estudiante SET Estado = 'Activo' WHERE IdEstudiante = @IdEstudiante;
+
+        SET @MensajeResultado = CONCAT('Estudiante matriculado nuevamente en ', @NombreAnioActual, ' (Repitiendo año lectivo).');
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END;
+GO

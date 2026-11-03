@@ -4,6 +4,7 @@ using System.Windows.Forms;
 using SistemaAcademico.UI.Formularios.Alumnos;
 using SistemaAcademico.UI.Formularios.Calificaciones;
 using SistemaAcademico.UI.Formularios.Docentes;
+using SistemaAcademico.UI.Formularios.Matriculas;
 using SistemaAcademico.UI.Formularios.Seguridad;
 
 namespace SistemaAcademico.UI
@@ -84,8 +85,7 @@ namespace SistemaAcademico.UI
         private void btnMenuMatriculas_Click(object sender, EventArgs e)
         {
             ActivarBoton(btnMenuMatriculas);
-            lblModuloActual.Text = "Matrículas";
-            MessageBox.Show("Módulo de Matrículas programado para la siguiente sesión.", "Próximamente", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            AbrirFormularioEnPanel(new FrmGestionMatricula(), "Gestión y Promoción de Matrículas");
         }
 
         private void btnMenuCalificaciones_Click(object sender, EventArgs e)
@@ -103,8 +103,8 @@ namespace SistemaAcademico.UI
         private void btnMenuSalir_Click(object sender, EventArgs e)
         {
             var respuesta = MessageBox.Show(
-                "¿Está seguro de que desea salir del Sistema Académico?",
-                "Confirmación de Salida",
+                "¿Está seguro que desea salir del Sistema Académico?",
+                "Cerrar Sistema",
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Question);
 
