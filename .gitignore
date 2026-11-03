@@ -16,8 +16,3 @@ obj/
 # Archivos de NuGet (si se configuran para restaurarse automáticamente)
 packages/
 *.nupkg
-
-# Script de la base de datos que mencionaste
-#Script_DB_GestionAcademica.sql
-# O si prefieres ignorar todos los .sql:
-*.sql

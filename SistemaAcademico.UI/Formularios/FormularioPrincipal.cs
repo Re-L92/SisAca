@@ -1,9 +1,10 @@
-using SistemaAcademico.UI.Formularios.Alumnos;
-using SistemaAcademico.UI.Formularios.Docentes;
-using SistemaAcademico.UI.Formularios.Seguridad;
 using System;
 using System.Drawing;
 using System.Windows.Forms;
+using SistemaAcademico.UI.Formularios.Alumnos;
+using SistemaAcademico.UI.Formularios.Calificaciones;
+using SistemaAcademico.UI.Formularios.Docentes;
+using SistemaAcademico.UI.Formularios.Seguridad;
 
 namespace SistemaAcademico.UI
 {
@@ -90,8 +91,7 @@ namespace SistemaAcademico.UI
         private void btnMenuCalificaciones_Click(object sender, EventArgs e)
         {
             ActivarBoton(btnMenuCalificaciones);
-            lblModuloActual.Text = "Calificaciones";
-            MessageBox.Show("Módulo de Calificaciones programado para la siguiente sesión.", "Próximamente", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            AbrirFormularioEnPanel(new FrmGestionCalificaciones(), "Calificaciones y Mapeo Curricular");
         }
 
         private void btnMenuConfiguracion_Click(object sender, EventArgs e)
