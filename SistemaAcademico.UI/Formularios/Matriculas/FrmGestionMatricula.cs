@@ -70,7 +70,7 @@ namespace SistemaAcademico.UI.Formularios.Matriculas
             }
         }
 
-        public async Task CargarMatriculasAsync()
+        public async Task CargarMatriculasAsync(int? idMatriculaSeleccionar = null)
         {
             if (_cargandoCatalogos) return;
 
@@ -92,8 +92,16 @@ namespace SistemaAcademico.UI.Formularios.Matriculas
                 if (_listaMatriculas.Count > 0)
                 {
                     dgvMatriculas.ClearSelection();
-                    dgvMatriculas.Rows[0].Selected = true;
-                    await SeleccionarMatriculaAsync(_listaMatriculas[0]);
+                    int indiceSeleccion = 0;
+
+                    if (idMatriculaSeleccionar.HasValue && idMatriculaSeleccionar.Value > 0)
+                    {
+                        int encontrado = _listaMatriculas.FindIndex(m => m.IdMatricula == idMatriculaSeleccionar.Value);
+                        if (encontrado >= 0) indiceSeleccion = encontrado;
+                    }
+
+                    dgvMatriculas.Rows[indiceSeleccion].Selected = true;
+                    await SeleccionarMatriculaAsync(_listaMatriculas[indiceSeleccion]);
                 }
                 else
                 {
@@ -153,8 +161,8 @@ namespace SistemaAcademico.UI.Formularios.Matriculas
             lblCodigoEstudiante.Text = $"Carnet: {matricula.CodigoEstudiante}";
             lblGradoSeccionActual.Text = $"Grado: {matricula.NombreAnio} | Sec: '{matricula.NombreSeccion}' ({matricula.Ciclo})";
 
-            // 2. Colorear badge de estado del estudiante
-            ActualizarBadgeEstadoEstudiante(matricula.EstadoEstudiante);
+            // 2. Colorear y actualizar la etiqueta del estado del estudiante en la parte de matrícula
+            ActualizarBadgeEstadoEstudiante(matricula.EstadoEstudiante, matricula.EstadoMatricula);
 
             Cursor = Cursors.WaitCursor;
             try
@@ -169,7 +177,7 @@ namespace SistemaAcademico.UI.Formularios.Matriculas
                 // 4. Evaluar promoción según las reglas de negocio
                 _evaluacionActual = _matriculaBll.EvaluarPromocionEstudiante(matricula, calificaciones);
 
-                // 5. Presentar el dictamen y activar botones correspondientes
+                // 5. Presentar el dictamen, validar historial y activar/desactivar botones
                 ActualizarPanelDictamen(_evaluacionActual);
             }
             catch (Exception ex)
@@ -185,37 +193,40 @@ namespace SistemaAcademico.UI.Formularios.Matriculas
             }
         }
 
-        private void ActualizarBadgeEstadoEstudiante(string estado)
+        private void ActualizarBadgeEstadoEstudiante(string estadoEstudiante, string estadoMatricula)
         {
-            lblBadgeEstadoEstudiante.Text = estado.ToUpper();
+            string est = estadoEstudiante?.Trim().ToLower() ?? "activo";
+            string mat = estadoMatricula?.Trim().ToLower() ?? "activo";
 
-            switch (estado.Trim().ToLower())
+            if (mat == "estudiante graduado" || est == "estudiante graduado")
             {
-                case "activo":
-                    lblBadgeEstadoEstudiante.BackColor = Color.FromArgb(220, 252, 231);
-                    lblBadgeEstadoEstudiante.ForeColor = Color.FromArgb(22, 101, 52);
-                    break;
-                case "inactivo":
-                    lblBadgeEstadoEstudiante.BackColor = Color.FromArgb(254, 226, 226);
-                    lblBadgeEstadoEstudiante.ForeColor = Color.FromArgb(153, 27, 27);
-                    break;
-                case "promovido":
-                    lblBadgeEstadoEstudiante.BackColor = Color.FromArgb(219, 234, 254);
-                    lblBadgeEstadoEstudiante.ForeColor = Color.FromArgb(30, 64, 175);
-                    break;
-                case "estudiante graduado":
-                    lblBadgeEstadoEstudiante.BackColor = Color.FromArgb(254, 243, 199);
-                    lblBadgeEstadoEstudiante.ForeColor = Color.FromArgb(146, 64, 14);
-                    break;
-                case "repite año":
-                case "repite ano":
-                    lblBadgeEstadoEstudiante.BackColor = Color.FromArgb(255, 237, 213);
-                    lblBadgeEstadoEstudiante.ForeColor = Color.FromArgb(194, 65, 12);
-                    break;
-                default:
-                    lblBadgeEstadoEstudiante.BackColor = Color.FromArgb(241, 245, 249);
-                    lblBadgeEstadoEstudiante.ForeColor = Color.FromArgb(71, 85, 105);
-                    break;
+                lblBadgeEstadoEstudiante.Text = "ESTUDIANTE GRADUADO";
+                lblBadgeEstadoEstudiante.BackColor = Color.FromArgb(254, 243, 199);
+                lblBadgeEstadoEstudiante.ForeColor = Color.FromArgb(146, 64, 14);
+            }
+            else if (mat == "promovido")
+            {
+                lblBadgeEstadoEstudiante.Text = "APROBADO / PROMOVIDO";
+                lblBadgeEstadoEstudiante.BackColor = Color.FromArgb(219, 234, 254);
+                lblBadgeEstadoEstudiante.ForeColor = Color.FromArgb(30, 64, 175);
+            }
+            else if (mat == "repite año" || mat == "repite ano")
+            {
+                lblBadgeEstadoEstudiante.Text = "REPROBADO / REPITE AÑO";
+                lblBadgeEstadoEstudiante.BackColor = Color.FromArgb(254, 226, 226);
+                lblBadgeEstadoEstudiante.ForeColor = Color.FromArgb(153, 27, 27);
+            }
+            else if (est == "inactivo")
+            {
+                lblBadgeEstadoEstudiante.Text = "INACTIVO";
+                lblBadgeEstadoEstudiante.BackColor = Color.FromArgb(254, 226, 226);
+                lblBadgeEstadoEstudiante.ForeColor = Color.FromArgb(153, 27, 27);
+            }
+            else
+            {
+                lblBadgeEstadoEstudiante.Text = "ACTIVO (CURSANDO)";
+                lblBadgeEstadoEstudiante.BackColor = Color.FromArgb(220, 252, 231);
+                lblBadgeEstadoEstudiante.ForeColor = Color.FromArgb(22, 101, 52);
             }
         }
 
@@ -223,7 +234,77 @@ namespace SistemaAcademico.UI.Formularios.Matriculas
         {
             lblDictamen.Text = evaluacion.Dictamen;
 
-            // Ajustar estilos y habilitar botones según el resultado
+            // =========================================================================
+            // VALIDACIÓN: ¿YA FUE APROBADO O REPROBADO ANTERIORMENTE?
+            // =========================================================================
+            if (evaluacion.YaFueAprobado)
+            {
+                lblBadgeEstadoEstudiante.Text = "APROBADO / PROMOVIDO";
+                lblBadgeEstadoEstudiante.BackColor = Color.FromArgb(219, 234, 254);
+                lblBadgeEstadoEstudiante.ForeColor = Color.FromArgb(30, 64, 175);
+
+                lblDictamen.BackColor = Color.FromArgb(219, 234, 254);
+                lblDictamen.ForeColor = Color.FromArgb(30, 64, 175);
+
+                btnMatricularSiguiente.Text = "Ya Aprobado / Promovido";
+                btnMatricularSiguiente.Enabled = false;
+                btnMatricularSiguiente.BackColor = Color.FromArgb(203, 213, 225);
+
+                btnRepetirAnio.Text = "No Aplica Repetición";
+                btnRepetirAnio.Enabled = false;
+                btnRepetirAnio.BackColor = Color.FromArgb(203, 213, 225);
+
+                lblEstadoOperacion.Text = "Validación: El estudiante ya ha sido aprobado y promovido anteriormente.";
+                lblEstadoOperacion.ForeColor = Color.FromArgb(30, 64, 175);
+                return;
+            }
+
+            if (evaluacion.YaFueReprobado)
+            {
+                lblBadgeEstadoEstudiante.Text = "REPROBADO / REPITE AÑO";
+                lblBadgeEstadoEstudiante.BackColor = Color.FromArgb(254, 226, 226);
+                lblBadgeEstadoEstudiante.ForeColor = Color.FromArgb(153, 27, 27);
+
+                lblDictamen.BackColor = Color.FromArgb(254, 226, 226);
+                lblDictamen.ForeColor = Color.FromArgb(153, 27, 27);
+
+                btnMatricularSiguiente.Text = "No Aplica Promoción";
+                btnMatricularSiguiente.Enabled = false;
+                btnMatricularSiguiente.BackColor = Color.FromArgb(203, 213, 225);
+
+                btnRepetirAnio.Text = "Ya Registrado para Repetir";
+                btnRepetirAnio.Enabled = false;
+                btnRepetirAnio.BackColor = Color.FromArgb(203, 213, 225);
+
+                lblEstadoOperacion.Text = "Validación: El estudiante ya fue registrado como reprobado / repitente.";
+                lblEstadoOperacion.ForeColor = Color.FromArgb(153, 27, 27);
+                return;
+            }
+
+            if (evaluacion.YaGraduado)
+            {
+                lblBadgeEstadoEstudiante.Text = "ESTUDIANTE GRADUADO";
+                lblBadgeEstadoEstudiante.BackColor = Color.FromArgb(254, 243, 199);
+                lblBadgeEstadoEstudiante.ForeColor = Color.FromArgb(146, 64, 14);
+
+                lblDictamen.BackColor = Color.FromArgb(254, 243, 199);
+                lblDictamen.ForeColor = Color.FromArgb(146, 64, 14);
+
+                btnMatricularSiguiente.Text = "Estudiante Graduado";
+                btnMatricularSiguiente.Enabled = false;
+                btnMatricularSiguiente.BackColor = Color.FromArgb(203, 213, 225);
+
+                btnRepetirAnio.Enabled = false;
+                btnRepetirAnio.BackColor = Color.FromArgb(203, 213, 225);
+
+                lblEstadoOperacion.Text = "El estudiante ya culminó satisfactoriamente sus estudios secundarios.";
+                lblEstadoOperacion.ForeColor = Color.FromArgb(146, 64, 14);
+                return;
+            }
+
+            // =========================================================================
+            // EVALUACIÓN DE CICLO ACTIVO REGULAR
+            // =========================================================================
             if (evaluacion.EsGraduado)
             {
                 lblDictamen.BackColor = Color.FromArgb(254, 243, 199);
@@ -335,6 +416,41 @@ namespace SistemaAcademico.UI.Formularios.Matriculas
         {
             if (_matriculaSeleccionada == null || _evaluacionActual == null) return;
 
+            // =========================================================================
+            // VALIDACIONES DE SEGURIDAD PREVIAS
+            // =========================================================================
+            if (_evaluacionActual.YaFueAprobado)
+            {
+                MessageBox.Show(
+                    "El estudiante ya ha aprobado satisfactoriamente este grado escolar y fue promovido con anterioridad.\n\n" +
+                    "No es posible volver a aprobarlo ni matricularlo en este mismo año académico.",
+                    "Validación de Matrícula",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (_evaluacionActual.YaFueReprobado)
+            {
+                MessageBox.Show(
+                    "El estudiante reprobó este grado escolar y se encuentra registrado para repetir el año lectivo.\n\n" +
+                    "No puede ser promovido al siguiente año académico.",
+                    "Validación de Matrícula",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (_evaluacionActual.YaGraduado)
+            {
+                MessageBox.Show(
+                    "El estudiante ya completó sus estudios secundarios y se encuentra formalmente graduado.",
+                    "Validación de Matrícula",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+                return;
+            }
+
             // Caso A: Estudiante Graduado de 5to Año
             if (_evaluacionActual.EsGraduado)
             {
@@ -354,7 +470,7 @@ namespace SistemaAcademico.UI.Formularios.Matriculas
                         var (nuevoId, mensaje) = await _matriculaBll.MatricularSiguienteAnioAsync(_matriculaSeleccionada.IdMatricula, _matriculaSeleccionada.IdSeccion);
 
                         MessageBox.Show(mensaje, "Graduación Registrada", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        await CargarMatriculasAsync();
+                        await CargarMatriculasAsync(_matriculaSeleccionada.IdMatricula);
                     }
                     catch (Exception ex)
                     {
@@ -409,7 +525,7 @@ namespace SistemaAcademico.UI.Formularios.Matriculas
                         MessageBoxButtons.OK,
                         MessageBoxIcon.Information);
 
-                    await CargarMatriculasAsync();
+                    await CargarMatriculasAsync(nuevoId);
                 }
             }
             catch (Exception ex)
@@ -425,6 +541,30 @@ namespace SistemaAcademico.UI.Formularios.Matriculas
         private async void btnRepetirAnio_Click(object sender, EventArgs e)
         {
             if (_matriculaSeleccionada == null || _evaluacionActual == null) return;
+
+            // =========================================================================
+            // VALIDACIONES DE SEGURIDAD PREVIAS
+            // =========================================================================
+            if (_evaluacionActual.YaFueAprobado)
+            {
+                MessageBox.Show(
+                    "El estudiante aprobó satisfactoriamente este grado escolar con todas sus asignaturas aprobadas.\n\n" +
+                    "No es posible registrarlo como reprobado ni matricularlo para repetir un año que ya aprobó con éxito.",
+                    "Validación de Matrícula",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (_evaluacionActual.YaFueReprobado)
+            {
+                MessageBox.Show(
+                    "El estudiante ya fue registrado anteriormente como repitente de este año escolar.",
+                    "Validación de Matrícula",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                return;
+            }
 
             if (!_evaluacionActual.DebeRepetir)
             {
@@ -466,7 +606,7 @@ namespace SistemaAcademico.UI.Formularios.Matriculas
                         MessageBoxButtons.OK,
                         MessageBoxIcon.Information);
 
-                    await CargarMatriculasAsync();
+                    await CargarMatriculasAsync(nuevoId);
                 }
             }
             catch (Exception ex)

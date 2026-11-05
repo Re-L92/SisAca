@@ -13,6 +13,7 @@ namespace SistemaAcademico.Entidades.Entidades
         public string NombreAnioActual { get; set; } = string.Empty;
         public int IdSeccionActual { get; set; }
         public string NombreSeccionActual { get; set; } = string.Empty;
+        public string EstadoActualMatricula { get; set; } = string.Empty;
 
         public int TotalMaterias { get; set; }
         public int MateriasAprobadas { get; set; }
@@ -26,6 +27,11 @@ namespace SistemaAcademico.Entidades.Entidades
         public bool DebeRepetir { get; set; }
         public bool EnReparacion { get; set; }
         public bool TieneNotasIncompletas { get; set; }
+
+        // Nuevos estados de validación de historial
+        public bool YaFueAprobado { get; set; }
+        public bool YaFueReprobado { get; set; }
+        public bool YaGraduado { get; set; }
 
         public string Dictamen { get; set; } = string.Empty;
         public string SiguienteAnioNombre { get; set; } = string.Empty;

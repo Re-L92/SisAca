@@ -1,15 +1,21 @@
-﻿
+﻿-- ====================================================================================
+-- SISTEMA DE GESTION ACADEMICA - SCRIPT INTEGRAL DE BASE DE DATOS
+-- Base de Datos: DB_GestionAcademica
+-- Arquitectura: 3ra Forma Normal (3FN) con Restricciones Relacionales y Transacciones
+-- ====================================================================================
 
 IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'DB_GestionAcademica')
 BEGIN
     CREATE DATABASE DB_GestionAcademica;
-END
+END;
 GO
 
 USE DB_GestionAcademica;
 GO
 
-
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
+GO
 -- 1. TABLAS DEL SISTEMA EN TERCERA FORMA NORMAL (3FN)
 
 
@@ -166,7 +172,7 @@ BEGIN
         IdSeccion INT NOT NULL FOREIGN KEY REFERENCES dbo.Seccion(IdSeccion),
         FechaMatricula DATETIME NOT NULL DEFAULT GETDATE(),
         EstadoMatricula NVARCHAR(30) NOT NULL DEFAULT 'Activo',
-        CONSTRAINT UQ_Estudiante_Anio UNIQUE (IdEstudiante, IdAnio)
+        -- Restriccion de unicidad reemplazada por indice filtrado UQ_Estudiante_Anio_Activo (permite repeticion de ano escolar)
     );
 END
 GO
@@ -192,109 +198,58 @@ GO
 -- 2. PROCEDIMIENTOS ALMACENADOS 
 
 -- 2.1 SP_CrearAdministradorInicial (Sembrado y credenciales iniciales)
-CREATE PROCEDURE dbo.SP_CrearAdministradorInicial
-    @ClaveEncriptada NVARCHAR(256)
-AS
+
+-- 1.12.1 Indice unico filtrado para Matriculas Activas (Soporte de Historial y Repeticion de Grado)
+IF EXISTS (SELECT 1 FROM sys.key_constraints WHERE name = 'UQ_Estudiante_Anio')
 BEGIN
-    SET NOCOUNT ON;
-    BEGIN TRANSACTION;
-    BEGIN TRY
-        -- Insertar Roles
-        IF NOT EXISTS (SELECT 1 FROM dbo.Rol WHERE NombreRol = 'Administrador')
-            INSERT INTO dbo.Rol (NombreRol) VALUES ('Administrador');
-
-        IF NOT EXISTS (SELECT 1 FROM dbo.Rol WHERE NombreRol = 'Docente')
-            INSERT INTO dbo.Rol (NombreRol) VALUES ('Docente');
-
-        IF NOT EXISTS (SELECT 1 FROM dbo.Rol WHERE NombreRol = 'Secretario')
-            INSERT INTO dbo.Rol (NombreRol) VALUES ('Secretario');
-
-        -- Insertar Usuario Admin inicial
-        DECLARE @IdRolAdmin INT = (SELECT IdRol FROM dbo.Rol WHERE NombreRol = 'Administrador');
-
-        IF NOT EXISTS (SELECT 1 FROM dbo.Usuario WHERE NombreUsuario = 'admin')
-        BEGIN
-            INSERT INTO dbo.Usuario (IdRol, NombreUsuario, Clave, NombreCompleto, Estado)
-            VALUES (@IdRolAdmin, 'admin', @ClaveEncriptada, 'Administrador del Sistema', 'Activo');
-        END
-
-        -- Sembrar AÃ±os AcadÃ©micos
-        IF NOT EXISTS (SELECT 1 FROM dbo.AnioAcademico WHERE NombreAnio = '7mo Grado')
-            INSERT INTO dbo.AnioAcademico (NombreAnio, Ciclo) VALUES ('7mo Grado', 'III Ciclo');
-        IF NOT EXISTS (SELECT 1 FROM dbo.AnioAcademico WHERE NombreAnio = '8vo Grado')
-            INSERT INTO dbo.AnioAcademico (NombreAnio, Ciclo) VALUES ('8vo Grado', 'III Ciclo');
-        IF NOT EXISTS (SELECT 1 FROM dbo.AnioAcademico WHERE NombreAnio = '9no Grado')
-            INSERT INTO dbo.AnioAcademico (NombreAnio, Ciclo) VALUES ('9no Grado', 'III Ciclo');
-        IF NOT EXISTS (SELECT 1 FROM dbo.AnioAcademico WHERE NombreAnio = '10mo Grado')
-            INSERT INTO dbo.AnioAcademico (NombreAnio, Ciclo) VALUES ('10mo Grado', 'IV Ciclo');
-        IF NOT EXISTS (SELECT 1 FROM dbo.AnioAcademico WHERE NombreAnio = '11mo Grado')
-            INSERT INTO dbo.AnioAcademico (NombreAnio, Ciclo) VALUES ('11mo Grado', 'IV Ciclo');
-
-        -- Sembrar Secciones
-        IF NOT EXISTS (SELECT 1 FROM dbo.Seccion WHERE NombreSeccion = 'A')
-            INSERT INTO dbo.Seccion (NombreSeccion, CapacidadMaxima) VALUES ('A', 40);
-        IF NOT EXISTS (SELECT 1 FROM dbo.Seccion WHERE NombreSeccion = 'B')
-            INSERT INTO dbo.Seccion (NombreSeccion, CapacidadMaxima) VALUES ('B', 40);
-        IF NOT EXISTS (SELECT 1 FROM dbo.Seccion WHERE NombreSeccion = 'C')
-            INSERT INTO dbo.Seccion (NombreSeccion, CapacidadMaxima) VALUES ('C', 40);
-
-        -- Sembrar Asignaturas (III y IV Ciclo)
-        DECLARE @Asignaturas TABLE (Nombre NVARCHAR(100));
-        INSERT INTO @Asignaturas (Nombre) VALUES 
-            ('MatemÃ¡ticas'),
-            ('Lengua y Literatura'),
-            ('Ciencias Naturales'),
-            ('GeografÃ­a'),
-            ('Historia'),
-            ('InglÃ©s'),
-            ('EducaciÃ³n FÃ­sica'),
-            ('BiologÃ­a'),
-            ('FÃ­sica'),
-            ('QuÃ­mica'),
-            ('FilosofÃ­a'),
-            ('SociologÃ­a'),
-            ('EconomÃ­a');
-
-        INSERT INTO dbo.Asignatura (NombreAsignatura)
-        SELECT A.Nombre FROM @Asignaturas A
-        WHERE NOT EXISTS (SELECT 1 FROM dbo.Asignatura WHERE NombreAsignatura = A.Nombre);
-
-        -- Asociar Malla Curricular DinÃ¡mica
-        -- III Ciclo: 7mo, 8vo, 9no
-        INSERT INTO dbo.Grado_Asignatura (IdAnio, IdAsignatura, HorasSemanales)
-        SELECT an.IdAnio, asig.IdAsignatura, 4
-        FROM dbo.AnioAcademico an
-        CROSS JOIN dbo.Asignatura asig
-        WHERE an.Ciclo = 'III Ciclo'
-          AND asig.NombreAsignatura IN ('MatemÃ¡ticas', 'Lengua y Literatura', 'Ciencias Naturales', 'GeografÃ­a', 'Historia', 'InglÃ©s', 'EducaciÃ³n FÃ­sica')
-          AND NOT EXISTS (
-              SELECT 1 FROM dbo.Grado_Asignatura ga 
-              WHERE ga.IdAnio = an.IdAnio AND ga.IdAsignatura = asig.IdAsignatura
-          );
-
-        -- IV Ciclo: 10mo, 11mo
-        INSERT INTO dbo.Grado_Asignatura (IdAnio, IdAsignatura, HorasSemanales)
-        SELECT an.IdAnio, asig.IdAsignatura, 4
-        FROM dbo.AnioAcademico an
-        CROSS JOIN dbo.Asignatura asig
-        WHERE an.Ciclo = 'IV Ciclo'
-          AND asig.NombreAsignatura IN ('MatemÃ¡ticas', 'Lengua y Literatura', 'BiologÃ­a', 'FÃ­sica', 'QuÃ­mica', 'FilosofÃ­a', 'SociologÃ­a', 'EconomÃ­a', 'InglÃ©s', 'EducaciÃ³n FÃ­sica')
-          AND NOT EXISTS (
-              SELECT 1 FROM dbo.Grado_Asignatura ga 
-              WHERE ga.IdAnio = an.IdAnio AND ga.IdAsignatura = asig.IdAsignatura
-          );
-
-        COMMIT TRANSACTION;
-        SELECT 1 AS Resultado, 'Administrador y catÃ¡logos inicializados correctamente' AS Mensaje;
-    END TRY
-    BEGIN CATCH
-        ROLLBACK TRANSACTION;
-        THROW;
-    END CATCH
+    ALTER TABLE dbo.Matricula DROP CONSTRAINT UQ_Estudiante_Anio;
 END;
 GO
 
--- 2.2 SP_RegistrarEstudianteYMatricula (Transacción Atómica y Control de Cupo < 40)
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UQ_Estudiante_Anio_Activo')
+BEGIN
+    CREATE UNIQUE NONCLUSTERED INDEX UQ_Estudiante_Anio_Activo 
+    ON dbo.Matricula (IdEstudiante, IdAnio) 
+    WHERE EstadoMatricula = 'Activo';
+END;
+GO
+
+-- ====================================================================================
+-- PARTE 2: PROCEDIMIENTOS ALMACENADOS EN USO ACTIVO EN EL SISTEMA
+-- (Invocados activamente desde C# por AlumnoDal, DocenteDal, CalificacionDal y MatriculaDal)
+-- ====================================================================================
+
+-- ------------------------------------------------------------------------------------
+-- 2.1 MODULO DE ALUMNOS / ESTUDIANTES
+-- ------------------------------------------------------------------------------------
+CREATE OR ALTER PROCEDURE dbo.SP_ListarEstudiantes
+    @Filtro NVARCHAR(100) = ''
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT 
+        e.IdEstudiante,
+        e.CodigoEstudiante,
+        e.Nombres,
+        e.Apellidos,
+        e.FechaNacimiento,
+        e.Estado,
+        e.FechaRegistro,
+        t.IdTutor,
+        CONCAT(t.Nombres, ' ', t.Apellidos) AS NombreTutor,
+        t.Telefono AS TelefonoTutor,
+        t.Cedula AS CedulaTutor
+    FROM dbo.Estudiante e
+    INNER JOIN dbo.Tutor t ON e.IdTutor = t.IdTutor
+    WHERE (@Filtro = '' 
+       OR e.CodigoEstudiante LIKE '%' + @Filtro + '%'
+       OR e.Nombres LIKE '%' + @Filtro + '%'
+       OR e.Apellidos LIKE '%' + @Filtro + '%'
+       OR t.Cedula LIKE '%' + @Filtro + '%')
+    ORDER BY e.IdEstudiante DESC;
+END;
+GO
+
 CREATE OR ALTER PROCEDURE dbo.SP_RegistrarEstudianteYMatricula
     @TutorNombres NVARCHAR(100),
     @TutorApellidos NVARCHAR(100),
@@ -379,303 +334,6 @@ BEGIN
 END;
 GO
 
--- 2.3 SP_GuardarDocenteConAsignaturas (Garantiza no traslapes por secciÃ³n)
-CREATE PROCEDURE dbo.SP_GuardarDocenteConAsignaturas
-    @IdDocente INT = 0,
-    @Nombres NVARCHAR(100),
-    @Apellidos NVARCHAR(100),
-    @Cedula NVARCHAR(25),
-    @Telefono NVARCHAR(20),
-    @Correo NVARCHAR(100),
-    @Especialidad NVARCHAR(100),
-    @NuevoIdDocente INT OUTPUT
-AS
-BEGIN
-    SET NOCOUNT ON;
-    BEGIN TRANSACTION;
-    BEGIN TRY
-        IF @IdDocente <= 0
-        BEGIN
-            IF EXISTS (SELECT 1 FROM dbo.Docente WHERE Cedula = @Cedula)
-            BEGIN
-                RAISERROR('Ya existe un docente registrado con el nÃºmero de cÃ©dula proporcionado.', 16, 1);
-            END
-
-            INSERT INTO dbo.Docente (Nombres, Apellidos, Cedula, Telefono, Correo, Especialidad, Estado)
-            VALUES (@Nombres, @Apellidos, @Cedula, @Telefono, @Correo, @Especialidad, 'Activo');
-            SET @NuevoIdDocente = SCOPE_IDENTITY();
-        END
-        ELSE
-        BEGIN
-            UPDATE dbo.Docente
-            SET Nombres = @Nombres,
-                Apellidos = @Apellidos,
-                Cedula = @Cedula,
-                Telefono = @Telefono,
-                Correo = @Correo,
-                Especialidad = @Especialidad
-            WHERE IdDocente = @IdDocente;
-            SET @NuevoIdDocente = @IdDocente;
-        END
-
-        COMMIT TRANSACTION;
-    END TRY
-    BEGIN CATCH
-        ROLLBACK TRANSACTION;
-        THROW;
-    END CATCH
-END;
-GO
-
--- 2.3.1 SP_AsignarCargaDocente (Evita traslape de la asignatura en el grado y secciÃ³n)
-CREATE PROCEDURE dbo.SP_AsignarCargaDocente
-    @IdDocente INT,
-    @IdAsignatura INT,
-    @IdAnio INT,
-    @IdSeccion INT
-AS
-BEGIN
-    SET NOCOUNT ON;
-    BEGIN TRANSACTION;
-    BEGIN TRY
-        -- Validar si la asignatura en esa secciÃ³n ya estÃ¡ asignada a otro docente
-        IF EXISTS (
-            SELECT 1 FROM dbo.Docente_Asignatura 
-            WHERE IdAsignatura = @IdAsignatura 
-              AND IdAnio = @IdAnio 
-              AND IdSeccion = @IdSeccion 
-              AND IdDocente <> @IdDocente
-        )
-        BEGIN
-            RAISERROR('La asignatura seleccionada en este grado y secciÃ³n ya estÃ¡ asignada a otro docente.', 16, 1);
-        END
-
-        IF EXISTS (
-            SELECT 1 FROM dbo.Docente_Asignatura 
-            WHERE IdAsignatura = @IdAsignatura 
-              AND IdAnio = @IdAnio 
-              AND IdSeccion = @IdSeccion 
-              AND IdDocente = @IdDocente
-        )
-        BEGIN
-            -- Ya asignado al mismo docente
-            COMMIT TRANSACTION;
-            RETURN;
-        END
-
-        INSERT INTO dbo.Docente_Asignatura (IdDocente, IdAsignatura, IdAnio, IdSeccion)
-        VALUES (@IdDocente, @IdAsignatura, @IdAnio, @IdSeccion);
-
-        COMMIT TRANSACTION;
-    END TRY
-    BEGIN CATCH
-        ROLLBACK TRANSACTION;
-        THROW;
-    END CATCH
-END;
-GO
-
--- 2.4 SP_GuardarCalificacionEstudiante
-CREATE PROCEDURE dbo.SP_GuardarCalificacionEstudiante
-    @IdCalificacion INT,
-    @NotaI_Semestre DECIMAL(5,2) = NULL,
-    @NotaII_Semestre DECIMAL(5,2) = NULL,
-    @NotaReparacion DECIMAL(5,2) = NULL
-AS
-BEGIN
-    SET NOCOUNT ON;
-    BEGIN TRANSACTION;
-    BEGIN TRY
-        DECLARE @NotaFinal DECIMAL(5,2) = NULL;
-        DECLARE @EstadoAsignatura NVARCHAR(30) = 'En proceso';
-        DECLARE @Observacion NVARCHAR(200) = '';
-
-        -- Si ambas notas semestrales estÃ¡n presentes
-        IF @NotaI_Semestre IS NOT NULL AND @NotaII_Semestre IS NOT NULL
-        BEGIN
-            -- Semestre I (50%) + Semestre II (50%) = Nota Final
-            SET @NotaFinal = ROUND((@NotaI_Semestre * 0.50) + (@NotaII_Semestre * 0.50), 2);
-
-            IF @NotaFinal >= 60.0
-            BEGIN
-                SET @EstadoAsignatura = 'Aprobada';
-                SET @Observacion = 'Aprobada en curso regular';
-            END
-            ELSE
-            BEGIN
-                SET @EstadoAsignatura = 'ReparaciÃ³n';
-                SET @Observacion = 'Pendiente de examen de reparaciÃ³n';
-            END
-        END
-
-        -- Si rindiÃ³ examen de reparaciÃ³n
-        IF @NotaReparacion IS NOT NULL
-        BEGIN
-            IF @NotaReparacion >= 60.0
-            BEGIN
-                SET @EstadoAsignatura = 'Aprobada';
-                SET @Observacion = 'Aprobada en Examen de ReparaciÃ³n';
-            END
-            ELSE
-            BEGIN
-                SET @EstadoAsignatura = 'Reprobada';
-                SET @Observacion = 'Reprobada en Examen de ReparaciÃ³n';
-            END
-        END
-
-        UPDATE dbo.Calificacion
-        SET NotaI_Semestre = @NotaI_Semestre,
-            NotaII_Semestre = @NotaII_Semestre,
-            NotaFinal = @NotaFinal,
-            NotaReparacion = @NotaReparacion,
-            EstadoAsignatura = @EstadoAsignatura,
-            Observacion = @Observacion
-        WHERE IdCalificacion = @IdCalificacion;
-
-        COMMIT TRANSACTION;
-    END TRY
-    BEGIN CATCH
-        ROLLBACK TRANSACTION;
-        THROW;
-    END CATCH
-END;
-GO
-
--- 2.5 SP_PromoverEstudiante (Cierre de ciclo, reparaciÃ³n, repite aÃ±o o graduaciÃ³n)
-CREATE PROCEDURE dbo.SP_PromoverEstudiante
-    @IdMatricula INT,
-    @ResultadoPromocion NVARCHAR(50) OUTPUT,
-    @MateriasReprobadas INT OUTPUT
-AS
-BEGIN
-    SET NOCOUNT ON;
-    BEGIN TRANSACTION;
-    BEGIN TRY
-        DECLARE @IdEstudiante INT;
-        DECLARE @IdAnio INT;
-        DECLARE @NombreAnio NVARCHAR(50);
-
-        SELECT @IdEstudiante = m.IdEstudiante, @IdAnio = m.IdAnio, @NombreAnio = a.NombreAnio
-        FROM dbo.Matricula m
-        INNER JOIN dbo.AnioAcademico a ON m.IdAnio = a.IdAnio
-        WHERE m.IdMatricula = @IdMatricula;
-
-        -- Contar materias reprobadas definitivas o en reparaciÃ³n
-        DECLARE @TotalMaterias INT = (SELECT COUNT(1) FROM dbo.Calificacion WHERE IdMatricula = @IdMatricula);
-        DECLARE @MateriasAprobadas INT = (SELECT COUNT(1) FROM dbo.Calificacion WHERE IdMatricula = @IdMatricula AND EstadoAsignatura = 'Aprobada');
-        DECLARE @ReprobadasDirectas INT = (SELECT COUNT(1) FROM dbo.Calificacion WHERE IdMatricula = @IdMatricula AND EstadoAsignatura = 'Reprobada');
-        DECLARE @EnReparacion INT = (SELECT COUNT(1) FROM dbo.Calificacion WHERE IdMatricula = @IdMatricula AND EstadoAsignatura = 'ReparaciÃ³n');
-        DECLARE @Pendientes INT = (SELECT COUNT(1) FROM dbo.Calificacion WHERE IdMatricula = @IdMatricula AND EstadoAsignatura = 'En proceso');
-
-        IF @Pendientes > 0
-        BEGIN
-            RAISERROR('No se puede promover el estudiante: existen asignaturas con notas en proceso/incompletas.', 16, 1);
-        END
-
-        SET @MateriasReprobadas = @ReprobadasDirectas + @EnReparacion;
-
-        IF @MateriasReprobadas = 0
-        BEGIN
-            -- AprobÃ³ todas las materias
-            IF @NombreAnio = '11mo Grado'
-            BEGIN
-                SET @ResultadoPromocion = 'Estudiante Graduado';
-                UPDATE dbo.Matricula SET EstadoMatricula = 'Estudiante Graduado' WHERE IdMatricula = @IdMatricula;
-                UPDATE dbo.Estudiante SET Estado = 'Estudiante Graduado' WHERE IdEstudiante = @IdEstudiante;
-            END
-            ELSE
-            BEGIN
-                SET @ResultadoPromocion = 'Promovido';
-                UPDATE dbo.Matricula SET EstadoMatricula = 'Promovido' WHERE IdMatricula = @IdMatricula;
-                UPDATE dbo.Estudiante SET Estado = 'Promovido' WHERE IdEstudiante = @IdEstudiante;
-            END
-        END
-        ELSE IF @MateriasReprobadas IN (1, 2) AND @ReprobadasDirectas = 0
-        BEGIN
-            -- 1 o 2 materias pendientes pasan a ReparaciÃ³n
-            SET @ResultadoPromocion = 'Examen de ReparaciÃ³n';
-            UPDATE dbo.Matricula SET EstadoMatricula = 'ReparaciÃ³n' WHERE IdMatricula = @IdMatricula;
-        END
-        ELSE
-        BEGIN
-            -- 3 o mÃ¡s reprobadas, o reprobÃ³ examen de reparaciÃ³n
-            SET @ResultadoPromocion = 'Repite AÃ±o';
-            UPDATE dbo.Matricula SET EstadoMatricula = 'Repite AÃ±o' WHERE IdMatricula = @IdMatricula;
-            UPDATE dbo.Estudiante SET Estado = 'Repite AÃ±o' WHERE IdEstudiante = @IdEstudiante;
-        END
-
-        COMMIT TRANSACTION;
-    END TRY
-    BEGIN CATCH
-        ROLLBACK TRANSACTION;
-        THROW;
-    END CATCH
-END;
-GO
-
-
--- 3. PROCEDIMIENTOS ALMACENADOS COMPLEMENTARIOS DE CONSULTA Y GESTIÃ“N
-
-
--- 3.1 SP_ValidarLogin
-CREATE PROCEDURE dbo.SP_ValidarLogin
-    @NombreUsuario NVARCHAR(50),
-    @Clave NVARCHAR(256)
-AS
-BEGIN
-    SET NOCOUNT ON;
-    SELECT 
-        u.IdUsuario,
-        u.NombreUsuario,
-        u.NombreCompleto,
-        u.Estado,
-        r.IdRol,
-        r.NombreRol
-    FROM dbo.Usuario u
-    INNER JOIN dbo.Rol r ON u.IdRol = r.IdRol
-    WHERE u.NombreUsuario = @NombreUsuario AND u.Clave = @Clave AND u.Estado = 'Activo';
-END;
-GO
-
--- 3.2 SP_ListarEstudiantes
-CREATE OR ALTER PROCEDURE dbo.SP_ListarEstudiantes
-    @Filtro NVARCHAR(100) = ''
-AS
-BEGIN
-    SET NOCOUNT ON;
-    SELECT 
-        e.IdEstudiante,
-        e.CodigoEstudiante,
-        e.Nombres,
-        e.Apellidos,
-        e.FechaNacimiento,
-        e.Estado,
-        e.FechaRegistro,
-        t.IdTutor,
-        CONCAT(t.Nombres, ' ', t.Apellidos) AS NombreTutor,
-        t.Telefono AS TelefonoTutor,
-        t.Cedula AS CedulaTutor
-    FROM dbo.Estudiante e
-    INNER JOIN dbo.Tutor t ON e.IdTutor = t.IdTutor
-    WHERE (@Filtro = '' 
-       OR e.CodigoEstudiante LIKE '%' + @Filtro + '%'
-       OR e.Nombres LIKE '%' + @Filtro + '%'
-       OR e.Apellidos LIKE '%' + @Filtro + '%'
-       OR t.Cedula LIKE '%' + @Filtro + '%')
-    ORDER BY e.IdEstudiante DESC;
-END;
-GO
-
--- 3.3 SP_ObtenerSiguienteCorrelativoEstudiante
-CREATE OR ALTER PROCEDURE dbo.SP_ObtenerSiguienteCorrelativoEstudiante
-AS
-BEGIN
-    SET NOCOUNT ON;
-    SELECT ISNULL(MAX(IdEstudiante), 0) + 1 AS SiguienteId FROM dbo.Estudiante;
-END;
-GO
-
--- 3.3.1 SP_CambiarEstadoEstudiante
 CREATE OR ALTER PROCEDURE dbo.SP_CambiarEstadoEstudiante
     @IdEstudiante INT,
     @NuevoEstado NVARCHAR(25) = NULL
@@ -700,248 +358,14 @@ BEGIN
 END;
 GO
 
--- 3.4 SP_ListarMatriculas
-CREATE OR ALTER PROCEDURE dbo.SP_ListarMatriculas
-    @IdAnio INT = 0,
-    @IdSeccion INT = 0,
-    @Filtro NVARCHAR(100) = ''
+CREATE OR ALTER PROCEDURE dbo.SP_ObtenerSiguienteCorrelativoEstudiante
 AS
 BEGIN
     SET NOCOUNT ON;
-
-    WITH UltimaMatricula AS (
-        SELECT 
-            m.IdMatricula,
-            m.IdEstudiante,
-            m.IdAnio,
-            m.IdSeccion,
-            m.FechaMatricula,
-            m.EstadoMatricula,
-            ROW_NUMBER() OVER (PARTITION BY m.IdEstudiante ORDER BY m.IdMatricula DESC) AS Fila
-        FROM dbo.Matricula m
-        WHERE m.EstadoMatricula <> 'Cancelado'
-    )
-    SELECT 
-        um.IdMatricula,
-        e.IdEstudiante,
-        e.CodigoEstudiante,
-        CONCAT(e.Nombres, ' ', e.Apellidos) AS NombreEstudiante,
-        e.Estado AS EstadoEstudiante,
-        an.IdAnio,
-        an.NombreAnio,
-        an.Ciclo,
-        sec.IdSeccion,
-        sec.NombreSeccion,
-        um.FechaMatricula,
-        um.EstadoMatricula,
-        ISNULL(CONCAT(doc.Nombres, ' ', doc.Apellidos), 'Sin Docente Guía') AS DocenteGuia,
-        ISNULL(aus.Aula, 'Por Asignar') AS Aula
-    FROM UltimaMatricula um
-    INNER JOIN dbo.Estudiante e ON um.IdEstudiante = e.IdEstudiante
-    INNER JOIN dbo.AnioAcademico an ON um.IdAnio = an.IdAnio
-    INNER JOIN dbo.Seccion sec ON um.IdSeccion = sec.IdSeccion
-    LEFT JOIN dbo.Aula_Seccion aus ON aus.IdAnio = um.IdAnio AND aus.IdSeccion = um.IdSeccion
-    LEFT JOIN dbo.Docente doc ON aus.IdDocenteGuia = doc.IdDocente
-    WHERE um.Fila = 1
-      AND (@IdAnio = 0 OR um.IdAnio = @IdAnio)
-      AND (@IdSeccion = 0 OR um.IdSeccion = @IdSeccion)
-      AND (@Filtro = '' 
-           OR e.CodigoEstudiante LIKE '%' + @Filtro + '%'
-           OR e.Nombres LIKE '%' + @Filtro + '%'
-           OR e.Apellidos LIKE '%' + @Filtro + '%')
-    ORDER BY um.IdMatricula DESC;
+    SELECT ISNULL(MAX(IdEstudiante), 0) + 1 AS SiguienteId FROM dbo.Estudiante;
 END;
 GO
 
--- 3.5 SP_ObtenerCalificacionesPorMatricula
-CREATE PROCEDURE dbo.SP_ObtenerCalificacionesPorMatricula
-    @IdMatricula INT
-AS
-BEGIN
-    SET NOCOUNT ON;
-    SELECT 
-        c.IdCalificacion,
-        c.IdMatricula,
-        asig.IdAsignatura,
-        asig.NombreAsignatura,
-        c.NotaI_Semestre,
-        c.NotaII_Semestre,
-        c.NotaFinal,
-        c.NotaReparacion,
-        c.EstadoAsignatura,
-        c.Observacion
-    FROM dbo.Calificacion c
-    INNER JOIN dbo.Asignatura asig ON c.IdAsignatura = asig.IdAsignatura
-    WHERE c.IdMatricula = @IdMatricula
-    ORDER BY asig.NombreAsignatura ASC;
-END;
-GO
-
--- 3.6 SP_ListarDocentes
-CREATE PROCEDURE dbo.SP_ListarDocentes
-    @Filtro NVARCHAR(100) = ''
-AS
-BEGIN
-    SET NOCOUNT ON;
-    SELECT 
-        d.IdDocente,
-        d.Nombres,
-        d.Apellidos,
-        d.Cedula,
-        d.Telefono,
-        d.Correo,
-        d.Especialidad,
-        d.Estado
-    FROM dbo.Docente d
-    WHERE (@Filtro = '' 
-       OR d.Nombres LIKE '%' + @Filtro + '%'
-       OR d.Apellidos LIKE '%' + @Filtro + '%'
-       OR d.Cedula LIKE '%' + @Filtro + '%'
-       OR d.Especialidad LIKE '%' + @Filtro + '%')
-    ORDER BY d.Apellidos, d.Nombres;
-END;
-GO
-
--- 3.7 SP_ListarCargaDocente
-CREATE PROCEDURE dbo.SP_ListarCargaDocente
-    @IdDocente INT
-AS
-BEGIN
-    SET NOCOUNT ON;
-    SELECT 
-        da.IdDocenteAsignatura,
-        da.IdDocente,
-        da.IdAsignatura,
-        asig.NombreAsignatura,
-        da.IdAnio,
-        an.NombreAnio,
-        da.IdSeccion,
-        sec.NombreSeccion
-    FROM dbo.Docente_Asignatura da
-    INNER JOIN dbo.Asignatura asig ON da.IdAsignatura = asig.IdAsignatura
-    INNER JOIN dbo.AnioAcademico an ON da.IdAnio = an.IdAnio
-    INNER JOIN dbo.Seccion sec ON da.IdSeccion = sec.IdSeccion
-    WHERE da.IdDocente = @IdDocente
-    ORDER BY an.IdAnio, sec.NombreSeccion, asig.NombreAsignatura;
-END;
-GO
-
--- 3.8 SP_EliminarCargaDocente
-CREATE PROCEDURE dbo.SP_EliminarCargaDocente
-    @IdDocenteAsignatura INT
-AS
-BEGIN
-    SET NOCOUNT ON;
-    DELETE FROM dbo.Docente_Asignatura WHERE IdDocenteAsignatura = @IdDocenteAsignatura;
-END;
-GO
-
--- 3.9 SP_ListarAulasSecciones
-CREATE PROCEDURE dbo.SP_ListarAulasSecciones
-AS
-BEGIN
-    SET NOCOUNT ON;
-    SELECT 
-        aus.IdAulaSeccion,
-        aus.IdAnio,
-        an.NombreAnio,
-        aus.IdSeccion,
-        sec.NombreSeccion,
-        aus.Aula,
-        aus.IdDocenteGuia,
-        ISNULL(CONCAT(d.Nombres, ' ', d.Apellidos), 'No asignado') AS DocenteGuia
-    FROM dbo.Aula_Seccion aus
-    INNER JOIN dbo.AnioAcademico an ON aus.IdAnio = an.IdAnio
-    INNER JOIN dbo.Seccion sec ON aus.IdSeccion = sec.IdSeccion
-    LEFT JOIN dbo.Docente d ON aus.IdDocenteGuia = d.IdDocente
-    ORDER BY an.IdAnio, sec.NombreSeccion;
-END;
-GO
-
--- 3.10 SP_GuardarAulaSeccion
-CREATE PROCEDURE dbo.SP_GuardarAulaSeccion
-    @IdAnio INT,
-    @IdSeccion INT,
-    @Aula NVARCHAR(50),
-    @IdDocenteGuia INT = NULL
-AS
-BEGIN
-    SET NOCOUNT ON;
-    BEGIN TRANSACTION;
-    BEGIN TRY
-        IF EXISTS (SELECT 1 FROM dbo.Aula_Seccion WHERE IdAnio = @IdAnio AND IdSeccion = @IdSeccion)
-        BEGIN
-            UPDATE dbo.Aula_Seccion
-            SET Aula = @Aula, IdDocenteGuia = @IdDocenteGuia
-            WHERE IdAnio = @IdAnio AND IdSeccion = @IdSeccion;
-        END
-        ELSE
-        BEGIN
-            INSERT INTO dbo.Aula_Seccion (IdAnio, IdSeccion, IdDocenteGuia, Aula)
-            VALUES (@IdAnio, @IdSeccion, @IdDocenteGuia, @Aula);
-        END
-
-        COMMIT TRANSACTION;
-    END TRY
-    BEGIN CATCH
-        ROLLBACK TRANSACTION;
-        THROW;
-    END CATCH
-END;
-GO
-
--- 3.11 SP_ObtenerDatosBoletin
-CREATE PROCEDURE dbo.SP_ObtenerDatosBoletin
-    @IdMatricula INT
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    -- Cabecera del Boletin
-    SELECT 
-        m.IdMatricula,
-        e.IdEstudiante,
-        e.CodigoEstudiante,
-        CONCAT(e.Nombres, ' ', e.Apellidos) AS NombreEstudiante,
-        an.IdAnio,
-        an.NombreAnio,
-        an.Ciclo,
-        sec.IdSeccion,
-        sec.NombreSeccion,
-        m.FechaMatricula,
-        m.EstadoMatricula,
-        CONCAT(t.Nombres, ' ', t.Apellidos) AS NombreTutor,
-        t.Telefono AS TelefonoTutor,
-        ISNULL(aus.Aula, 'Por definir') AS Aula,
-        ISNULL(CONCAT(d.Nombres, ' ', d.Apellidos), 'Docente GuÃ­a No Asignado') AS DocenteGuia
-    FROM dbo.Matricula m
-    INNER JOIN dbo.Estudiante e ON m.IdEstudiante = e.IdEstudiante
-    INNER JOIN dbo.Tutor t ON e.IdTutor = t.IdTutor
-    INNER JOIN dbo.AnioAcademico an ON m.IdAnio = an.IdAnio
-    INNER JOIN dbo.Seccion sec ON m.IdSeccion = sec.IdSeccion
-    LEFT JOIN dbo.Aula_Seccion aus ON aus.IdAnio = m.IdAnio AND aus.IdSeccion = m.IdSeccion
-    LEFT JOIN dbo.Docente d ON aus.IdDocenteGuia = d.IdDocente
-    WHERE m.IdMatricula = @IdMatricula;
-
-    -- Detalle de Notas
-    SELECT 
-        c.IdCalificacion,
-        asig.IdAsignatura,
-        asig.NombreAsignatura,
-        c.NotaI_Semestre,
-        c.NotaII_Semestre,
-        c.NotaFinal,
-        c.NotaReparacion,
-        c.EstadoAsignatura,
-        c.Observacion
-    FROM dbo.Calificacion c
-    INNER JOIN dbo.Asignatura asig ON c.IdAsignatura = asig.IdAsignatura
-    WHERE c.IdMatricula = @IdMatricula
-    ORDER BY asig.NombreAsignatura ASC;
-END;
-GO
-
--- 3.12 SP_ListarAniosAcademicos y SP_ListarSecciones
 CREATE OR ALTER PROCEDURE dbo.SP_ListarAniosAcademicos
 AS
 BEGIN
@@ -980,9 +404,6 @@ BEGIN
 END;
 GO
 
--- 3.13 SP_ListarSeccionesConDisponibilidad
--- Consulta la capacidad de las 3 secciones (A, B, C) para un año determinado
--- y retorna la sección más vacía en primer lugar para seleccionarla automáticamente.
 CREATE OR ALTER PROCEDURE dbo.SP_ListarSeccionesConDisponibilidad
     @IdAnio INT
 AS
@@ -1086,83 +507,226 @@ BEGIN
 END;
 GO
 
--- 4. POBLADO INICIAL AUTOMÁTICO DE CATÁLOGOS BASE (EJECUCIÓN INMEDIATA)
-IF NOT EXISTS (SELECT 1 FROM dbo.AnioAcademico WHERE NombreAnio = '7mo Grado')
-    INSERT INTO dbo.AnioAcademico (NombreAnio, Ciclo) VALUES ('7mo Grado', 'III Ciclo');
-IF NOT EXISTS (SELECT 1 FROM dbo.AnioAcademico WHERE NombreAnio = '8vo Grado')
-    INSERT INTO dbo.AnioAcademico (NombreAnio, Ciclo) VALUES ('8vo Grado', 'III Ciclo');
-IF NOT EXISTS (SELECT 1 FROM dbo.AnioAcademico WHERE NombreAnio = '9no Grado')
-    INSERT INTO dbo.AnioAcademico (NombreAnio, Ciclo) VALUES ('9no Grado', 'III Ciclo');
-IF NOT EXISTS (SELECT 1 FROM dbo.AnioAcademico WHERE NombreAnio = '10mo Grado')
-    INSERT INTO dbo.AnioAcademico (NombreAnio, Ciclo) VALUES ('10mo Grado', 'IV Ciclo');
-IF NOT EXISTS (SELECT 1 FROM dbo.AnioAcademico WHERE NombreAnio = '11mo Grado')
-    INSERT INTO dbo.AnioAcademico (NombreAnio, Ciclo) VALUES ('11mo Grado', 'IV Ciclo');
-
-IF NOT EXISTS (SELECT 1 FROM dbo.Seccion WHERE NombreSeccion = 'A')
-    INSERT INTO dbo.Seccion (NombreSeccion, CapacidadMaxima) VALUES ('A', 40);
-IF NOT EXISTS (SELECT 1 FROM dbo.Seccion WHERE NombreSeccion = 'B')
-    INSERT INTO dbo.Seccion (NombreSeccion, CapacidadMaxima) VALUES ('B', 40);
-IF NOT EXISTS (SELECT 1 FROM dbo.Seccion WHERE NombreSeccion = 'C')
-    INSERT INTO dbo.Seccion (NombreSeccion, CapacidadMaxima) VALUES ('C', 40);
-
-DECLARE @AsignaturasInit TABLE (Nombre NVARCHAR(100));
-INSERT INTO @AsignaturasInit (Nombre) VALUES 
-    ('Matemáticas'), ('Lengua y Literatura'), ('Ciencias Naturales'),
-    ('Geografía'), ('Historia'), ('Inglés'), ('Educación Física'),
-    ('Biología'), ('Física'), ('Química'), ('Filosofía'), ('Sociología'), ('Economía');
-
-INSERT INTO dbo.Asignatura (NombreAsignatura)
-SELECT A.Nombre FROM @AsignaturasInit A
-WHERE NOT EXISTS (SELECT 1 FROM dbo.Asignatura WHERE NombreAsignatura = A.Nombre);
-
--- Asociar Malla para III Ciclo
-INSERT INTO dbo.Grado_Asignatura (IdAnio, IdAsignatura, HorasSemanales)
-SELECT an.IdAnio, asig.IdAsignatura, 4
-FROM dbo.AnioAcademico an
-CROSS JOIN dbo.Asignatura asig
-WHERE an.Ciclo = 'III Ciclo'
-  AND asig.NombreAsignatura IN ('Matemáticas', 'Lengua y Literatura', 'Ciencias Naturales', 'Geografía', 'Historia', 'Inglés', 'Educación Física')
-  AND NOT EXISTS (
-      SELECT 1 FROM dbo.Grado_Asignatura ga 
-      WHERE ga.IdAnio = an.IdAnio AND ga.IdAsignatura = asig.IdAsignatura
-  );
-
--- Asociar Malla para IV Ciclo
-INSERT INTO dbo.Grado_Asignatura (IdAnio, IdAsignatura, HorasSemanales)
-SELECT an.IdAnio, asig.IdAsignatura, 4
-FROM dbo.AnioAcademico an
-CROSS JOIN dbo.Asignatura asig
-WHERE an.Ciclo = 'IV Ciclo'
-  AND asig.NombreAsignatura IN ('Matemáticas', 'Lengua y Literatura', 'Biología', 'Física', 'Química', 'Filosofía', 'Sociología', 'Economía', 'Inglés', 'Educación Física')
-  AND NOT EXISTS (
-      SELECT 1 FROM dbo.Grado_Asignatura ga 
-      WHERE ga.IdAnio = an.IdAnio AND ga.IdAsignatura = asig.IdAsignatura
-  );
-GO
-
-
-
-
--- =========================================================================
--- 4. PROCEDIMIENTOS ALMACENADOS PARA EL MÓDULO DE MATRÍCULAS Y PROMOCIÓN
--- =========================================================================
-
--- 4.1 Ajuste de Restricción para permitir histórico y repetición de año escolar
-IF EXISTS (SELECT 1 FROM sys.key_constraints WHERE name = 'UQ_Estudiante_Anio')
+-- ------------------------------------------------------------------------------------
+-- 2.2 MODULO DE PERSONAL DOCENTE
+-- ------------------------------------------------------------------------------------
+CREATE OR ALTER PROCEDURE dbo.SP_ListarDocentes
+    @Filtro NVARCHAR(100) = ''
+AS
 BEGIN
-    ALTER TABLE dbo.Matricula DROP CONSTRAINT UQ_Estudiante_Anio;
+    SET NOCOUNT ON;
+    SELECT 
+        d.IdDocente,
+        d.Nombres,
+        d.Apellidos,
+        d.Cedula,
+        d.Telefono,
+        d.Correo,
+        d.Especialidad,
+        d.Estado
+    FROM dbo.Docente d
+    WHERE (@Filtro = '' 
+       OR d.Nombres LIKE '%' + @Filtro + '%'
+       OR d.Apellidos LIKE '%' + @Filtro + '%'
+       OR d.Cedula LIKE '%' + @Filtro + '%'
+       OR d.Especialidad LIKE '%' + @Filtro + '%')
+    ORDER BY d.Apellidos, d.Nombres;
 END;
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UQ_Estudiante_Anio_Activo')
+CREATE OR ALTER PROCEDURE dbo.SP_GuardarDocenteConAsignaturas
+    @IdDocente INT = 0,
+    @Nombres NVARCHAR(100),
+    @Apellidos NVARCHAR(100),
+    @Cedula NVARCHAR(25),
+    @Telefono NVARCHAR(20),
+    @Correo NVARCHAR(100),
+    @Especialidad NVARCHAR(100),
+    @NuevoIdDocente INT OUTPUT
+AS
 BEGIN
-    CREATE UNIQUE NONCLUSTERED INDEX UQ_Estudiante_Anio_Activo 
-    ON dbo.Matricula (IdEstudiante, IdAnio) 
-    WHERE EstadoMatricula = 'Activo';
+    SET NOCOUNT ON;
+    BEGIN TRANSACTION;
+    BEGIN TRY
+        IF @IdDocente <= 0
+        BEGIN
+            IF EXISTS (SELECT 1 FROM dbo.Docente WHERE Cedula = @Cedula)
+            BEGIN
+                RAISERROR('Ya existe un docente registrado con el nÃºmero de cÃ©dula proporcionado.', 16, 1);
+            END
+
+            INSERT INTO dbo.Docente (Nombres, Apellidos, Cedula, Telefono, Correo, Especialidad, Estado)
+            VALUES (@Nombres, @Apellidos, @Cedula, @Telefono, @Correo, @Especialidad, 'Activo');
+            SET @NuevoIdDocente = SCOPE_IDENTITY();
+        END
+        ELSE
+        BEGIN
+            UPDATE dbo.Docente
+            SET Nombres = @Nombres,
+                Apellidos = @Apellidos,
+                Cedula = @Cedula,
+                Telefono = @Telefono,
+                Correo = @Correo,
+                Especialidad = @Especialidad
+            WHERE IdDocente = @IdDocente;
+            SET @NuevoIdDocente = @IdDocente;
+        END
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
 END;
 GO
 
--- 4.2 SP_MatricularSiguienteAnio (Promoción y avance de grado curricular)
+-- ------------------------------------------------------------------------------------
+-- 2.3 MODULO DE CALIFICACIONES
+-- ------------------------------------------------------------------------------------
+CREATE OR ALTER PROCEDURE dbo.SP_ListarMatriculas
+    @IdAnio INT = 0,
+    @IdSeccion INT = 0,
+    @Filtro NVARCHAR(100) = ''
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    WITH UltimaMatricula AS (
+        SELECT 
+            m.IdMatricula,
+            m.IdEstudiante,
+            m.IdAnio,
+            m.IdSeccion,
+            m.FechaMatricula,
+            m.EstadoMatricula,
+            ROW_NUMBER() OVER (PARTITION BY m.IdEstudiante ORDER BY m.IdMatricula DESC) AS Fila
+        FROM dbo.Matricula m
+        WHERE m.EstadoMatricula <> 'Cancelado'
+    )
+    SELECT 
+        um.IdMatricula,
+        e.IdEstudiante,
+        e.CodigoEstudiante,
+        CONCAT(e.Nombres, ' ', e.Apellidos) AS NombreEstudiante,
+        e.Estado AS EstadoEstudiante,
+        an.IdAnio,
+        an.NombreAnio,
+        an.Ciclo,
+        sec.IdSeccion,
+        sec.NombreSeccion,
+        um.FechaMatricula,
+        um.EstadoMatricula,
+        ISNULL(CONCAT(doc.Nombres, ' ', doc.Apellidos), 'Sin Docente Guía') AS DocenteGuia,
+        ISNULL(aus.Aula, 'Por Asignar') AS Aula
+    FROM UltimaMatricula um
+    INNER JOIN dbo.Estudiante e ON um.IdEstudiante = e.IdEstudiante
+    INNER JOIN dbo.AnioAcademico an ON um.IdAnio = an.IdAnio
+    INNER JOIN dbo.Seccion sec ON um.IdSeccion = sec.IdSeccion
+    LEFT JOIN dbo.Aula_Seccion aus ON aus.IdAnio = um.IdAnio AND aus.IdSeccion = um.IdSeccion
+    LEFT JOIN dbo.Docente doc ON aus.IdDocenteGuia = doc.IdDocente
+    WHERE um.Fila = 1
+      AND (@IdAnio = 0 OR um.IdAnio = @IdAnio)
+      AND (@IdSeccion = 0 OR um.IdSeccion = @IdSeccion)
+      AND (@Filtro = '' 
+           OR e.CodigoEstudiante LIKE '%' + @Filtro + '%'
+           OR e.Nombres LIKE '%' + @Filtro + '%'
+           OR e.Apellidos LIKE '%' + @Filtro + '%')
+    ORDER BY um.IdMatricula DESC;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.SP_ObtenerCalificacionesPorMatricula
+    @IdMatricula INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT 
+        c.IdCalificacion,
+        c.IdMatricula,
+        asig.IdAsignatura,
+        asig.NombreAsignatura,
+        c.NotaI_Semestre,
+        c.NotaII_Semestre,
+        c.NotaFinal,
+        c.NotaReparacion,
+        c.EstadoAsignatura,
+        c.Observacion
+    FROM dbo.Calificacion c
+    INNER JOIN dbo.Asignatura asig ON c.IdAsignatura = asig.IdAsignatura
+    WHERE c.IdMatricula = @IdMatricula
+    ORDER BY asig.NombreAsignatura ASC;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.SP_GuardarCalificacionEstudiante
+    @IdCalificacion INT,
+    @NotaI_Semestre DECIMAL(5,2) = NULL,
+    @NotaII_Semestre DECIMAL(5,2) = NULL,
+    @NotaReparacion DECIMAL(5,2) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRANSACTION;
+    BEGIN TRY
+        DECLARE @NotaFinal DECIMAL(5,2) = NULL;
+        DECLARE @EstadoAsignatura NVARCHAR(30) = 'En proceso';
+        DECLARE @Observacion NVARCHAR(200) = '';
+
+        -- Si ambas notas semestrales estÃ¡n presentes
+        IF @NotaI_Semestre IS NOT NULL AND @NotaII_Semestre IS NOT NULL
+        BEGIN
+            -- Semestre I (50%) + Semestre II (50%) = Nota Final
+            SET @NotaFinal = ROUND((@NotaI_Semestre * 0.50) + (@NotaII_Semestre * 0.50), 2);
+
+            IF @NotaFinal >= 60.0
+            BEGIN
+                SET @EstadoAsignatura = 'Aprobada';
+                SET @Observacion = 'Aprobada en curso regular';
+            END
+            ELSE
+            BEGIN
+                SET @EstadoAsignatura = 'ReparaciÃ³n';
+                SET @Observacion = 'Pendiente de examen de reparaciÃ³n';
+            END
+        END
+
+        -- Si rindiÃ³ examen de reparaciÃ³n
+        IF @NotaReparacion IS NOT NULL
+        BEGIN
+            IF @NotaReparacion >= 60.0
+            BEGIN
+                SET @EstadoAsignatura = 'Aprobada';
+                SET @Observacion = 'Aprobada en Examen de ReparaciÃ³n';
+            END
+            ELSE
+            BEGIN
+                SET @EstadoAsignatura = 'Reprobada';
+                SET @Observacion = 'Reprobada en Examen de ReparaciÃ³n';
+            END
+        END
+
+        UPDATE dbo.Calificacion
+        SET NotaI_Semestre = @NotaI_Semestre,
+            NotaII_Semestre = @NotaII_Semestre,
+            NotaFinal = @NotaFinal,
+            NotaReparacion = @NotaReparacion,
+            EstadoAsignatura = @EstadoAsignatura,
+            Observacion = @Observacion
+        WHERE IdCalificacion = @IdCalificacion;
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END;
+GO
+
+-- ------------------------------------------------------------------------------------
+-- 2.4 MODULO DE MATRICULAS Y PROMOCION ACADEMICA
+-- ------------------------------------------------------------------------------------
 CREATE OR ALTER PROCEDURE dbo.SP_MatricularSiguienteAnio
     @IdMatriculaActual INT,
     @IdSeccionNueva INT,
@@ -1176,10 +740,12 @@ BEGIN
         DECLARE @IdEstudiante INT;
         DECLARE @IdAnioActual INT;
         DECLARE @NombreAnioActual NVARCHAR(50);
+        DECLARE @EstadoMatriculaActual NVARCHAR(30);
 
         SELECT @IdEstudiante = m.IdEstudiante, 
                @IdAnioActual = m.IdAnio, 
-               @NombreAnioActual = a.NombreAnio
+               @NombreAnioActual = a.NombreAnio,
+               @EstadoMatriculaActual = m.EstadoMatricula
         FROM dbo.Matricula m
         INNER JOIN dbo.AnioAcademico a ON m.IdAnio = a.IdAnio
         WHERE m.IdMatricula = @IdMatriculaActual;
@@ -1187,6 +753,21 @@ BEGIN
         IF @IdEstudiante IS NULL
         BEGIN
             RAISERROR('No se encontró el registro de matrícula especificado.', 16, 1);
+            RETURN;
+        END
+
+        -- Validar si ya fue aprobado o promovido anteriormente
+        IF @EstadoMatriculaActual IN ('Promovido', 'Estudiante Graduado')
+        BEGIN
+            RAISERROR('Validación de Matrícula: El estudiante ya ha sido aprobado y promovido anteriormente al siguiente grado.', 16, 1);
+            RETURN;
+        END
+
+        -- Validar si se encuentra reprobado
+        IF @EstadoMatriculaActual IN ('Repite Año', 'Repite Ano')
+        BEGIN
+            RAISERROR('Validación de Matrícula: El estudiante reprobó este grado escolar y no puede ser promovido al siguiente año.', 16, 1);
+            RETURN;
         END
 
         -- 1. Validar que no haya calificaciones pendientes
@@ -1271,7 +852,6 @@ BEGIN
 END;
 GO
 
--- 4.3 SP_MatricularMismoAnio (Repetición de año escolar)
 CREATE OR ALTER PROCEDURE dbo.SP_MatricularMismoAnio
     @IdMatriculaActual INT,
     @IdSeccionNueva INT,
@@ -1285,10 +865,12 @@ BEGIN
         DECLARE @IdEstudiante INT;
         DECLARE @IdAnioActual INT;
         DECLARE @NombreAnioActual NVARCHAR(50);
+        DECLARE @EstadoMatriculaActual NVARCHAR(30);
 
         SELECT @IdEstudiante = m.IdEstudiante, 
                @IdAnioActual = m.IdAnio, 
-               @NombreAnioActual = a.NombreAnio
+               @NombreAnioActual = a.NombreAnio,
+               @EstadoMatriculaActual = m.EstadoMatricula
         FROM dbo.Matricula m
         INNER JOIN dbo.AnioAcademico a ON m.IdAnio = a.IdAnio
         WHERE m.IdMatricula = @IdMatriculaActual;
@@ -1296,6 +878,21 @@ BEGIN
         IF @IdEstudiante IS NULL
         BEGIN
             RAISERROR('No se encontró el registro de matrícula especificado.', 16, 1);
+            RETURN;
+        END
+
+        -- Validar si ya aprobó con éxito
+        IF @EstadoMatriculaActual IN ('Promovido', 'Estudiante Graduado')
+        BEGIN
+            RAISERROR('Validación de Matrícula: El estudiante aprobó satisfactoriamente este grado escolar; no puede ser registrado como reprobado ni repetir el año.', 16, 1);
+            RETURN;
+        END
+
+        -- Validar si ya fue registrado como repitente
+        IF @EstadoMatriculaActual IN ('Repite Año', 'Repite Ano')
+        BEGIN
+            RAISERROR('Validación de Matrícula: El estudiante ya fue registrado anteriormente como repitente para este año académico.', 16, 1);
+            RETURN;
         END
 
         -- 1. Validar cupo en la sección seleccionada
@@ -1344,4 +941,457 @@ BEGIN
         THROW;
     END CATCH
 END;
+GO
+
+-- ====================================================================================
+-- PARTE 3: PROCEDIMIENTOS ALMACENADOS PARA MODULOS FUTUROS
+-- (Disenados para modulos pendientes de interfaz: Login, Boletines y Carga Horaria)
+-- ====================================================================================
+
+-- ------------------------------------------------------------------------------------
+-- 3.1 MODULO DE AUTENTICACION Y SEGURIDAD (LOGIN / USUARIOS)
+-- ------------------------------------------------------------------------------------
+CREATE OR ALTER PROCEDURE dbo.SP_ValidarLogin
+    @NombreUsuario NVARCHAR(50),
+    @Clave NVARCHAR(256)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT 
+        u.IdUsuario,
+        u.NombreUsuario,
+        u.NombreCompleto,
+        u.Estado,
+        r.IdRol,
+        r.NombreRol
+    FROM dbo.Usuario u
+    INNER JOIN dbo.Rol r ON u.IdRol = r.IdRol
+    WHERE u.NombreUsuario = @NombreUsuario AND u.Clave = @Clave AND u.Estado = 'Activo';
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.SP_CrearAdministradorInicial
+    @ClaveEncriptada NVARCHAR(256)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRANSACTION;
+    BEGIN TRY
+        -- Insertar Roles
+        IF NOT EXISTS (SELECT 1 FROM dbo.Rol WHERE NombreRol = 'Administrador')
+            INSERT INTO dbo.Rol (NombreRol) VALUES ('Administrador');
+
+        IF NOT EXISTS (SELECT 1 FROM dbo.Rol WHERE NombreRol = 'Docente')
+            INSERT INTO dbo.Rol (NombreRol) VALUES ('Docente');
+
+        IF NOT EXISTS (SELECT 1 FROM dbo.Rol WHERE NombreRol = 'Secretario')
+            INSERT INTO dbo.Rol (NombreRol) VALUES ('Secretario');
+
+        -- Insertar Usuario Admin inicial
+        DECLARE @IdRolAdmin INT = (SELECT IdRol FROM dbo.Rol WHERE NombreRol = 'Administrador');
+
+        IF NOT EXISTS (SELECT 1 FROM dbo.Usuario WHERE NombreUsuario = 'admin')
+        BEGIN
+            INSERT INTO dbo.Usuario (IdRol, NombreUsuario, Clave, NombreCompleto, Estado)
+            VALUES (@IdRolAdmin, 'admin', @ClaveEncriptada, 'Administrador del Sistema', 'Activo');
+        END
+
+        -- Sembrar AÃ±os AcadÃ©micos
+        IF NOT EXISTS (SELECT 1 FROM dbo.AnioAcademico WHERE NombreAnio = '7mo Grado')
+            INSERT INTO dbo.AnioAcademico (NombreAnio, Ciclo) VALUES ('7mo Grado', 'III Ciclo');
+        IF NOT EXISTS (SELECT 1 FROM dbo.AnioAcademico WHERE NombreAnio = '8vo Grado')
+            INSERT INTO dbo.AnioAcademico (NombreAnio, Ciclo) VALUES ('8vo Grado', 'III Ciclo');
+        IF NOT EXISTS (SELECT 1 FROM dbo.AnioAcademico WHERE NombreAnio = '9no Grado')
+            INSERT INTO dbo.AnioAcademico (NombreAnio, Ciclo) VALUES ('9no Grado', 'III Ciclo');
+        IF NOT EXISTS (SELECT 1 FROM dbo.AnioAcademico WHERE NombreAnio = '10mo Grado')
+            INSERT INTO dbo.AnioAcademico (NombreAnio, Ciclo) VALUES ('10mo Grado', 'IV Ciclo');
+        IF NOT EXISTS (SELECT 1 FROM dbo.AnioAcademico WHERE NombreAnio = '11mo Grado')
+            INSERT INTO dbo.AnioAcademico (NombreAnio, Ciclo) VALUES ('11mo Grado', 'IV Ciclo');
+
+        -- Sembrar Secciones
+        IF NOT EXISTS (SELECT 1 FROM dbo.Seccion WHERE NombreSeccion = 'A')
+            INSERT INTO dbo.Seccion (NombreSeccion, CapacidadMaxima) VALUES ('A', 40);
+        IF NOT EXISTS (SELECT 1 FROM dbo.Seccion WHERE NombreSeccion = 'B')
+            INSERT INTO dbo.Seccion (NombreSeccion, CapacidadMaxima) VALUES ('B', 40);
+        IF NOT EXISTS (SELECT 1 FROM dbo.Seccion WHERE NombreSeccion = 'C')
+            INSERT INTO dbo.Seccion (NombreSeccion, CapacidadMaxima) VALUES ('C', 40);
+
+        -- Sembrar Asignaturas (III y IV Ciclo)
+        DECLARE @Asignaturas TABLE (Nombre NVARCHAR(100));
+        INSERT INTO @Asignaturas (Nombre) VALUES 
+            ('MatemÃ¡ticas'),
+            ('Lengua y Literatura'),
+            ('Ciencias Naturales'),
+            ('GeografÃ­a'),
+            ('Historia'),
+            ('InglÃ©s'),
+            ('EducaciÃ³n FÃ­sica'),
+            ('BiologÃ­a'),
+            ('FÃ­sica'),
+            ('QuÃ­mica'),
+            ('FilosofÃ­a'),
+            ('SociologÃ­a'),
+            ('EconomÃ­a');
+
+        INSERT INTO dbo.Asignatura (NombreAsignatura)
+        SELECT A.Nombre FROM @Asignaturas A
+        WHERE NOT EXISTS (SELECT 1 FROM dbo.Asignatura WHERE NombreAsignatura = A.Nombre);
+
+        -- Asociar Malla Curricular DinÃ¡mica
+        -- III Ciclo: 7mo, 8vo, 9no
+        INSERT INTO dbo.Grado_Asignatura (IdAnio, IdAsignatura, HorasSemanales)
+        SELECT an.IdAnio, asig.IdAsignatura, 4
+        FROM dbo.AnioAcademico an
+        CROSS JOIN dbo.Asignatura asig
+        WHERE an.Ciclo = 'III Ciclo'
+          AND asig.NombreAsignatura IN ('MatemÃ¡ticas', 'Lengua y Literatura', 'Ciencias Naturales', 'GeografÃ­a', 'Historia', 'InglÃ©s', 'EducaciÃ³n FÃ­sica')
+          AND NOT EXISTS (
+              SELECT 1 FROM dbo.Grado_Asignatura ga 
+              WHERE ga.IdAnio = an.IdAnio AND ga.IdAsignatura = asig.IdAsignatura
+          );
+
+        -- IV Ciclo: 10mo, 11mo
+        INSERT INTO dbo.Grado_Asignatura (IdAnio, IdAsignatura, HorasSemanales)
+        SELECT an.IdAnio, asig.IdAsignatura, 4
+        FROM dbo.AnioAcademico an
+        CROSS JOIN dbo.Asignatura asig
+        WHERE an.Ciclo = 'IV Ciclo'
+          AND asig.NombreAsignatura IN ('MatemÃ¡ticas', 'Lengua y Literatura', 'BiologÃ­a', 'FÃ­sica', 'QuÃ­mica', 'FilosofÃ­a', 'SociologÃ­a', 'EconomÃ­a', 'InglÃ©s', 'EducaciÃ³n FÃ­sica')
+          AND NOT EXISTS (
+              SELECT 1 FROM dbo.Grado_Asignatura ga 
+              WHERE ga.IdAnio = an.IdAnio AND ga.IdAsignatura = asig.IdAsignatura
+          );
+
+        COMMIT TRANSACTION;
+        SELECT 1 AS Resultado, 'Administrador y catÃ¡logos inicializados correctamente' AS Mensaje;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END;
+GO
+
+-- ------------------------------------------------------------------------------------
+-- 3.2 MODULO DE REPORTES Y BOLETINES DE CALIFICACIONES (IMPRESION)
+-- ------------------------------------------------------------------------------------
+CREATE OR ALTER PROCEDURE dbo.SP_ObtenerDatosBoletin
+    @IdMatricula INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Cabecera del Boletin
+    SELECT 
+        m.IdMatricula,
+        e.IdEstudiante,
+        e.CodigoEstudiante,
+        CONCAT(e.Nombres, ' ', e.Apellidos) AS NombreEstudiante,
+        an.IdAnio,
+        an.NombreAnio,
+        an.Ciclo,
+        sec.IdSeccion,
+        sec.NombreSeccion,
+        m.FechaMatricula,
+        m.EstadoMatricula,
+        CONCAT(t.Nombres, ' ', t.Apellidos) AS NombreTutor,
+        t.Telefono AS TelefonoTutor,
+        ISNULL(aus.Aula, 'Por definir') AS Aula,
+        ISNULL(CONCAT(d.Nombres, ' ', d.Apellidos), 'Docente GuÃ­a No Asignado') AS DocenteGuia
+    FROM dbo.Matricula m
+    INNER JOIN dbo.Estudiante e ON m.IdEstudiante = e.IdEstudiante
+    INNER JOIN dbo.Tutor t ON e.IdTutor = t.IdTutor
+    INNER JOIN dbo.AnioAcademico an ON m.IdAnio = an.IdAnio
+    INNER JOIN dbo.Seccion sec ON m.IdSeccion = sec.IdSeccion
+    LEFT JOIN dbo.Aula_Seccion aus ON aus.IdAnio = m.IdAnio AND aus.IdSeccion = m.IdSeccion
+    LEFT JOIN dbo.Docente d ON aus.IdDocenteGuia = d.IdDocente
+    WHERE m.IdMatricula = @IdMatricula;
+
+    -- Detalle de Notas
+    SELECT 
+        c.IdCalificacion,
+        asig.IdAsignatura,
+        asig.NombreAsignatura,
+        c.NotaI_Semestre,
+        c.NotaII_Semestre,
+        c.NotaFinal,
+        c.NotaReparacion,
+        c.EstadoAsignatura,
+        c.Observacion
+    FROM dbo.Calificacion c
+    INNER JOIN dbo.Asignatura asig ON c.IdAsignatura = asig.IdAsignatura
+    WHERE c.IdMatricula = @IdMatricula
+    ORDER BY asig.NombreAsignatura ASC;
+END;
+GO
+
+-- ------------------------------------------------------------------------------------
+-- 3.3 MODULO DE GESTION DE CARGA DOCENTE Y ASIGNACION DE AULAS
+-- ------------------------------------------------------------------------------------
+CREATE OR ALTER PROCEDURE dbo.SP_AsignarCargaDocente
+    @IdDocente INT,
+    @IdAsignatura INT,
+    @IdAnio INT,
+    @IdSeccion INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRANSACTION;
+    BEGIN TRY
+        -- Validar si la asignatura en esa secciÃ³n ya estÃ¡ asignada a otro docente
+        IF EXISTS (
+            SELECT 1 FROM dbo.Docente_Asignatura 
+            WHERE IdAsignatura = @IdAsignatura 
+              AND IdAnio = @IdAnio 
+              AND IdSeccion = @IdSeccion 
+              AND IdDocente <> @IdDocente
+        )
+        BEGIN
+            RAISERROR('La asignatura seleccionada en este grado y secciÃ³n ya estÃ¡ asignada a otro docente.', 16, 1);
+        END
+
+        IF EXISTS (
+            SELECT 1 FROM dbo.Docente_Asignatura 
+            WHERE IdAsignatura = @IdAsignatura 
+              AND IdAnio = @IdAnio 
+              AND IdSeccion = @IdSeccion 
+              AND IdDocente = @IdDocente
+        )
+        BEGIN
+            -- Ya asignado al mismo docente
+            COMMIT TRANSACTION;
+            RETURN;
+        END
+
+        INSERT INTO dbo.Docente_Asignatura (IdDocente, IdAsignatura, IdAnio, IdSeccion)
+        VALUES (@IdDocente, @IdAsignatura, @IdAnio, @IdSeccion);
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.SP_ListarCargaDocente
+    @IdDocente INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT 
+        da.IdDocenteAsignatura,
+        da.IdDocente,
+        da.IdAsignatura,
+        asig.NombreAsignatura,
+        da.IdAnio,
+        an.NombreAnio,
+        da.IdSeccion,
+        sec.NombreSeccion
+    FROM dbo.Docente_Asignatura da
+    INNER JOIN dbo.Asignatura asig ON da.IdAsignatura = asig.IdAsignatura
+    INNER JOIN dbo.AnioAcademico an ON da.IdAnio = an.IdAnio
+    INNER JOIN dbo.Seccion sec ON da.IdSeccion = sec.IdSeccion
+    WHERE da.IdDocente = @IdDocente
+    ORDER BY an.IdAnio, sec.NombreSeccion, asig.NombreAsignatura;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.SP_EliminarCargaDocente
+    @IdDocenteAsignatura INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DELETE FROM dbo.Docente_Asignatura WHERE IdDocenteAsignatura = @IdDocenteAsignatura;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.SP_ListarAulasSecciones
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT 
+        aus.IdAulaSeccion,
+        aus.IdAnio,
+        an.NombreAnio,
+        aus.IdSeccion,
+        sec.NombreSeccion,
+        aus.Aula,
+        aus.IdDocenteGuia,
+        ISNULL(CONCAT(d.Nombres, ' ', d.Apellidos), 'No asignado') AS DocenteGuia
+    FROM dbo.Aula_Seccion aus
+    INNER JOIN dbo.AnioAcademico an ON aus.IdAnio = an.IdAnio
+    INNER JOIN dbo.Seccion sec ON aus.IdSeccion = sec.IdSeccion
+    LEFT JOIN dbo.Docente d ON aus.IdDocenteGuia = d.IdDocente
+    ORDER BY an.IdAnio, sec.NombreSeccion;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.SP_GuardarAulaSeccion
+    @IdAnio INT,
+    @IdSeccion INT,
+    @Aula NVARCHAR(50),
+    @IdDocenteGuia INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRANSACTION;
+    BEGIN TRY
+        IF EXISTS (SELECT 1 FROM dbo.Aula_Seccion WHERE IdAnio = @IdAnio AND IdSeccion = @IdSeccion)
+        BEGIN
+            UPDATE dbo.Aula_Seccion
+            SET Aula = @Aula, IdDocenteGuia = @IdDocenteGuia
+            WHERE IdAnio = @IdAnio AND IdSeccion = @IdSeccion;
+        END
+        ELSE
+        BEGIN
+            INSERT INTO dbo.Aula_Seccion (IdAnio, IdSeccion, IdDocenteGuia, Aula)
+            VALUES (@IdAnio, @IdSeccion, @IdDocenteGuia, @Aula);
+        END
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END;
+GO
+
+-- ====================================================================================
+-- PARTE 4: PROCEDIMIENTOS ALMACENADOS OBSOLETOS / EN DESUSO
+-- (Mantenido solo por referencia historica; no se recomienda su uso)
+-- ====================================================================================
+
+-- 4.1 SP_PromoverEstudiante
+-- NOTA: Este procedimiento fue reemplazado por SP_MatricularSiguienteAnio y SP_MatricularMismoAnio,
+-- los cuales incorporan control de secciones, cupos maximos (<40) y creacion de nueva matricula.
+CREATE OR ALTER PROCEDURE dbo.SP_PromoverEstudiante
+    @IdMatricula INT,
+    @ResultadoPromocion NVARCHAR(50) OUTPUT,
+    @MateriasReprobadas INT OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRANSACTION;
+    BEGIN TRY
+        DECLARE @IdEstudiante INT;
+        DECLARE @IdAnio INT;
+        DECLARE @NombreAnio NVARCHAR(50);
+
+        SELECT @IdEstudiante = m.IdEstudiante, @IdAnio = m.IdAnio, @NombreAnio = a.NombreAnio
+        FROM dbo.Matricula m
+        INNER JOIN dbo.AnioAcademico a ON m.IdAnio = a.IdAnio
+        WHERE m.IdMatricula = @IdMatricula;
+
+        -- Contar materias reprobadas definitivas o en reparaciÃ³n
+        DECLARE @TotalMaterias INT = (SELECT COUNT(1) FROM dbo.Calificacion WHERE IdMatricula = @IdMatricula);
+        DECLARE @MateriasAprobadas INT = (SELECT COUNT(1) FROM dbo.Calificacion WHERE IdMatricula = @IdMatricula AND EstadoAsignatura = 'Aprobada');
+        DECLARE @ReprobadasDirectas INT = (SELECT COUNT(1) FROM dbo.Calificacion WHERE IdMatricula = @IdMatricula AND EstadoAsignatura = 'Reprobada');
+        DECLARE @EnReparacion INT = (SELECT COUNT(1) FROM dbo.Calificacion WHERE IdMatricula = @IdMatricula AND EstadoAsignatura = 'ReparaciÃ³n');
+        DECLARE @Pendientes INT = (SELECT COUNT(1) FROM dbo.Calificacion WHERE IdMatricula = @IdMatricula AND EstadoAsignatura = 'En proceso');
+
+        IF @Pendientes > 0
+        BEGIN
+            RAISERROR('No se puede promover el estudiante: existen asignaturas con notas en proceso/incompletas.', 16, 1);
+        END
+
+        SET @MateriasReprobadas = @ReprobadasDirectas + @EnReparacion;
+
+        IF @MateriasReprobadas = 0
+        BEGIN
+            -- AprobÃ³ todas las materias
+            IF @NombreAnio = '11mo Grado'
+            BEGIN
+                SET @ResultadoPromocion = 'Estudiante Graduado';
+                UPDATE dbo.Matricula SET EstadoMatricula = 'Estudiante Graduado' WHERE IdMatricula = @IdMatricula;
+                UPDATE dbo.Estudiante SET Estado = 'Estudiante Graduado' WHERE IdEstudiante = @IdEstudiante;
+            END
+            ELSE
+            BEGIN
+                SET @ResultadoPromocion = 'Promovido';
+                UPDATE dbo.Matricula SET EstadoMatricula = 'Promovido' WHERE IdMatricula = @IdMatricula;
+                UPDATE dbo.Estudiante SET Estado = 'Promovido' WHERE IdEstudiante = @IdEstudiante;
+            END
+        END
+        ELSE IF @MateriasReprobadas IN (1, 2) AND @ReprobadasDirectas = 0
+        BEGIN
+            -- 1 o 2 materias pendientes pasan a ReparaciÃ³n
+            SET @ResultadoPromocion = 'Examen de ReparaciÃ³n';
+            UPDATE dbo.Matricula SET EstadoMatricula = 'ReparaciÃ³n' WHERE IdMatricula = @IdMatricula;
+        END
+        ELSE
+        BEGIN
+            -- 3 o mÃ¡s reprobadas, o reprobÃ³ examen de reparaciÃ³n
+            SET @ResultadoPromocion = 'Repite AÃ±o';
+            UPDATE dbo.Matricula SET EstadoMatricula = 'Repite AÃ±o' WHERE IdMatricula = @IdMatricula;
+            UPDATE dbo.Estudiante SET Estado = 'Repite AÃ±o' WHERE IdEstudiante = @IdEstudiante;
+        END
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END;
+GO
+
+-- ====================================================================================
+-- PARTE 5: POBLADO INICIAL AUTOMATICO DE CATALOGOS BASE (SEED DATA)
+-- ====================================================================================
+-- 4. POBLADO INICIAL AUTOMÁTICO DE CATÁLOGOS BASE (EJECUCIÓN INMEDIATA)
+IF NOT EXISTS (SELECT 1 FROM dbo.AnioAcademico WHERE NombreAnio = '7mo Grado')
+    INSERT INTO dbo.AnioAcademico (NombreAnio, Ciclo) VALUES ('7mo Grado', 'III Ciclo');
+IF NOT EXISTS (SELECT 1 FROM dbo.AnioAcademico WHERE NombreAnio = '8vo Grado')
+    INSERT INTO dbo.AnioAcademico (NombreAnio, Ciclo) VALUES ('8vo Grado', 'III Ciclo');
+IF NOT EXISTS (SELECT 1 FROM dbo.AnioAcademico WHERE NombreAnio = '9no Grado')
+    INSERT INTO dbo.AnioAcademico (NombreAnio, Ciclo) VALUES ('9no Grado', 'III Ciclo');
+IF NOT EXISTS (SELECT 1 FROM dbo.AnioAcademico WHERE NombreAnio = '10mo Grado')
+    INSERT INTO dbo.AnioAcademico (NombreAnio, Ciclo) VALUES ('10mo Grado', 'IV Ciclo');
+IF NOT EXISTS (SELECT 1 FROM dbo.AnioAcademico WHERE NombreAnio = '11mo Grado')
+    INSERT INTO dbo.AnioAcademico (NombreAnio, Ciclo) VALUES ('11mo Grado', 'IV Ciclo');
+
+IF NOT EXISTS (SELECT 1 FROM dbo.Seccion WHERE NombreSeccion = 'A')
+    INSERT INTO dbo.Seccion (NombreSeccion, CapacidadMaxima) VALUES ('A', 40);
+IF NOT EXISTS (SELECT 1 FROM dbo.Seccion WHERE NombreSeccion = 'B')
+    INSERT INTO dbo.Seccion (NombreSeccion, CapacidadMaxima) VALUES ('B', 40);
+IF NOT EXISTS (SELECT 1 FROM dbo.Seccion WHERE NombreSeccion = 'C')
+    INSERT INTO dbo.Seccion (NombreSeccion, CapacidadMaxima) VALUES ('C', 40);
+
+DECLARE @AsignaturasInit TABLE (Nombre NVARCHAR(100));
+INSERT INTO @AsignaturasInit (Nombre) VALUES 
+    ('Matemáticas'), ('Lengua y Literatura'), ('Ciencias Naturales'),
+    ('Geografía'), ('Historia'), ('Inglés'), ('Educación Física'),
+    ('Biología'), ('Física'), ('Química'), ('Filosofía'), ('Sociología'), ('Economía');
+
+INSERT INTO dbo.Asignatura (NombreAsignatura)
+SELECT A.Nombre FROM @AsignaturasInit A
+WHERE NOT EXISTS (SELECT 1 FROM dbo.Asignatura WHERE NombreAsignatura = A.Nombre);
+
+-- Asociar Malla para III Ciclo
+INSERT INTO dbo.Grado_Asignatura (IdAnio, IdAsignatura, HorasSemanales)
+SELECT an.IdAnio, asig.IdAsignatura, 4
+FROM dbo.AnioAcademico an
+CROSS JOIN dbo.Asignatura asig
+WHERE an.Ciclo = 'III Ciclo'
+  AND asig.NombreAsignatura IN ('Matemáticas', 'Lengua y Literatura', 'Ciencias Naturales', 'Geografía', 'Historia', 'Inglés', 'Educación Física')
+  AND NOT EXISTS (
+      SELECT 1 FROM dbo.Grado_Asignatura ga 
+      WHERE ga.IdAnio = an.IdAnio AND ga.IdAsignatura = asig.IdAsignatura
+  );
+
+-- Asociar Malla para IV Ciclo
+INSERT INTO dbo.Grado_Asignatura (IdAnio, IdAsignatura, HorasSemanales)
+SELECT an.IdAnio, asig.IdAsignatura, 4
+FROM dbo.AnioAcademico an
+CROSS JOIN dbo.Asignatura asig
+WHERE an.Ciclo = 'IV Ciclo'
+  AND asig.NombreAsignatura IN ('Matemáticas', 'Lengua y Literatura', 'Biología', 'Física', 'Química', 'Filosofía', 'Sociología', 'Economía', 'Inglés', 'Educación Física')
+  AND NOT EXISTS (
+      SELECT 1 FROM dbo.Grado_Asignatura ga 
+      WHERE ga.IdAnio = an.IdAnio AND ga.IdAsignatura = asig.IdAsignatura
+  );
+GO
 GO

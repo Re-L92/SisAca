@@ -224,7 +224,7 @@ namespace SistemaAcademico.UI.Formularios.Matriculas
             lblGradoSeccionActual.AutoSize = true;
             lblGradoSeccionActual.Font = new System.Drawing.Font("Segoe UI", 9.5F);
             lblGradoSeccionActual.ForeColor = System.Drawing.Color.FromArgb(71, 85, 105);
-            lblGradoSeccionActual.Location = new System.Drawing.Point(540, 35);
+            lblGradoSeccionActual.Location = new System.Drawing.Point(680, 35);
             lblGradoSeccionActual.Name = "lblGradoSeccionActual";
             lblGradoSeccionActual.Size = new System.Drawing.Size(166, 21);
             lblGradoSeccionActual.TabIndex = 4;

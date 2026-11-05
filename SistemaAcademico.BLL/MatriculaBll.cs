@@ -41,8 +41,9 @@ namespace SistemaAcademico.BLL
         }
 
         /// <summary>
-        /// Evalúa el rendimiento escolar del alumno y determina con exactitud si puede avanzar al siguiente año,
-        /// si se gradúa de 5to año, si debe presentar examen de reparación o si debe repetir el año lectivo.
+        /// Evalúa el rendimiento escolar del alumno y determina si puede avanzar al siguiente año,
+        /// si se gradúa, si debe presentar examen de reparación o si debe repetir el año.
+        /// Incluye validaciones estrictas en caso de que el estudiante ya haya sido aprobado o reprobado previamente.
         /// </summary>
         public EvaluacionPromocionModel EvaluarPromocionEstudiante(MatriculaEntity matricula, List<CalificacionEntity> calificaciones)
         {
@@ -56,9 +57,56 @@ namespace SistemaAcademico.BLL
                 NombreAnioActual = matricula.NombreAnio,
                 IdSeccionActual = matricula.IdSeccion,
                 NombreSeccionActual = matricula.NombreSeccion,
+                EstadoActualMatricula = matricula.EstadoMatricula,
                 Calificaciones = calificaciones ?? new List<CalificacionEntity>()
             };
 
+            // Determinar siguiente año
+            evaluacion.SiguienteIdAnio = matricula.IdAnio + 1;
+            evaluacion.SiguienteAnioNombre = evaluacion.SiguienteIdAnio switch
+            {
+                2 => "8vo Grado",
+                3 => "9no Grado",
+                4 => "10mo Grado (4to Año)",
+                5 => "11mo Grado (5to Año)",
+                _ => "Graduado"
+            };
+
+            // =========================================================================
+            // VALIDACIÓN 1: ¿EL ESTUDIANTE YA FUE APROBADO O REPROBADO ANTERIORMENTE?
+            // =========================================================================
+            if (matricula.EstadoMatricula.Equals("Promovido", StringComparison.OrdinalIgnoreCase))
+            {
+                evaluacion.YaFueAprobado = true;
+                evaluacion.PuedeAvanzar = false;
+                evaluacion.DebeRepetir = false;
+                evaluacion.Dictamen = $"ATENCIÓN: El estudiante ya ha sido APROBADO y PROMOVIDO anteriormente al año consecutivo ({evaluacion.SiguienteAnioNombre}). No es posible volver a aprobarlo ni matricularlo desde este ciclo concluido.";
+                return evaluacion;
+            }
+
+            if (matricula.EstadoMatricula.Equals("Repite Año", StringComparison.OrdinalIgnoreCase) ||
+                matricula.EstadoMatricula.Equals("Repite Ano", StringComparison.OrdinalIgnoreCase))
+            {
+                evaluacion.YaFueReprobado = true;
+                evaluacion.PuedeAvanzar = false;
+                evaluacion.DebeRepetir = false;
+                evaluacion.Dictamen = $"ATENCIÓN: El estudiante ya ha sido REPROBADO anteriormente en este grado escolar ({matricula.NombreAnio}) y registrado para repetir. No es posible volver a registrarlo como reprobado.";
+                return evaluacion;
+            }
+
+            if (matricula.EstadoMatricula.Equals("Estudiante Graduado", StringComparison.OrdinalIgnoreCase))
+            {
+                evaluacion.YaGraduado = true;
+                evaluacion.PuedeAvanzar = false;
+                evaluacion.DebeRepetir = false;
+                evaluacion.EsGraduado = false;
+                evaluacion.Dictamen = "ATENCIÓN: El estudiante ya culminó con éxito su bachillerato y se encuentra formalmente GRADUADO. Su expediente escolar se encuentra cerrado.";
+                return evaluacion;
+            }
+
+            // =========================================================================
+            // VALIDACIÓN 2: EVALUACIÓN DE MATERIAS Y CALIFICACIONES ACTIVAS
+            // =========================================================================
             if (calificaciones == null || calificaciones.Count == 0)
             {
                 evaluacion.Dictamen = "El estudiante no tiene asignaturas registradas para este año académico.";
@@ -76,7 +124,6 @@ namespace SistemaAcademico.BLL
 
             foreach (var cal in calificaciones)
             {
-                // Asegurar que las reglas de negocio estén calculadas
                 cal.CalcularResultado();
 
                 if (cal.NotaFinal.HasValue)
@@ -110,18 +157,7 @@ namespace SistemaAcademico.BLL
             evaluacion.MateriasEnProceso = enProceso;
             evaluacion.PromedioFinal = notasFinalesContadas > 0 ? Math.Round(sumaFinales / notasFinalesContadas, 2) : 0;
 
-            // Determinar siguiente año
-            evaluacion.SiguienteIdAnio = matricula.IdAnio + 1;
-            evaluacion.SiguienteAnioNombre = evaluacion.SiguienteIdAnio switch
-            {
-                2 => "8vo Grado",
-                3 => "9no Grado",
-                4 => "10mo Grado (4to Año)",
-                5 => "11mo Grado (5to Año)",
-                _ => "Graduado"
-            };
-
-            // 1. Validar si existen notas incompletas
+            // Notas incompletas
             if (enProceso > 0)
             {
                 evaluacion.TieneNotasIncompletas = true;
@@ -129,15 +165,15 @@ namespace SistemaAcademico.BLL
                 return evaluacion;
             }
 
-            // 2. Regla: 3 o más clases a reparar -> Repite el año directamente
+            // Regla: 3 o más clases a reparar -> Repite el año directamente
             if ((enReparacion + reprobadas) >= 3)
             {
                 evaluacion.DebeRepetir = true;
-                evaluacion.Dictamen = $"El estudiante reprobó/dejó a reparación {enReparacion + reprobadas} asignaturas (máximo permitido para reparación: 2). Por normativa académica no califica para examen de promoción y debe repetir el año escolar.";
+                evaluacion.Dictamen = $"El estudiante reprobó/dejó a reparación {enReparacion + reprobadas} asignaturas (máximo permitido para reparación: 2). Por normativa académica debe repetir el año escolar.";
                 return evaluacion;
             }
 
-            // 3. Regla: Dejó reparaciones y reprobó al menos 1 en examen de reparación -> Repite el año
+            // Regla: Dejó reparaciones y reprobó al menos 1 en examen de reparación -> Repite el año
             if (reprobadas > 0)
             {
                 evaluacion.DebeRepetir = true;
@@ -145,7 +181,7 @@ namespace SistemaAcademico.BLL
                 return evaluacion;
             }
 
-            // 4. Regla: Tiene 1 o 2 clases a reparar pendientes
+            // Regla: Tiene 1 o 2 clases a reparar pendientes
             if (enReparacion > 0)
             {
                 evaluacion.EnReparacion = true;
@@ -153,10 +189,9 @@ namespace SistemaAcademico.BLL
                 return evaluacion;
             }
 
-            // 5. Todas las asignaturas están aprobadas
+            // Regla: Todas las asignaturas están aprobadas
             if (aprobadas == evaluacion.TotalMaterias && evaluacion.TotalMaterias > 0)
             {
-                // Si es 11mo Grado (5to Año)
                 if (matricula.IdAnio == 5 || matricula.NombreAnio.Contains("11"))
                 {
                     evaluacion.EsGraduado = true;
@@ -180,6 +215,22 @@ namespace SistemaAcademico.BLL
             if (idSeccionNueva <= 0)
                 throw new Exception("Debe seleccionar la sección para el nuevo año escolar.");
 
+            // Validar si el estudiante ya fue aprobado o reprobado previamente
+            var lista = await _matriculaDal.ListarMatriculasAsync();
+            var actual = lista.FirstOrDefault(m => m.IdMatricula == idMatriculaActual);
+            if (actual != null)
+            {
+                if (actual.EstadoMatricula.Equals("Promovido", StringComparison.OrdinalIgnoreCase))
+                    throw new Exception("Validación de Matrícula: El estudiante ya ha sido aprobado y promovido anteriormente al siguiente grado académico.");
+
+                if (actual.EstadoMatricula.Equals("Estudiante Graduado", StringComparison.OrdinalIgnoreCase))
+                    throw new Exception("Validación de Matrícula: El estudiante ya se encuentra graduado formalmente de la institución.");
+
+                if (actual.EstadoMatricula.Equals("Repite Año", StringComparison.OrdinalIgnoreCase) ||
+                    actual.EstadoMatricula.Equals("Repite Ano", StringComparison.OrdinalIgnoreCase))
+                    throw new Exception("Validación de Matrícula: El estudiante reprobó este grado escolar y no puede ser promovido al siguiente año.");
+            }
+
             return await _matriculaDal.MatricularSiguienteAnioAsync(idMatriculaActual, idSeccionNueva);
         }
 
@@ -190,6 +241,22 @@ namespace SistemaAcademico.BLL
 
             if (idSeccionNueva <= 0)
                 throw new Exception("Debe seleccionar la sección donde repetirá el año escolar.");
+
+            // Validar que no se intente reprobar a quien ya aprobó o ya fue registrado como repitente
+            var lista = await _matriculaDal.ListarMatriculasAsync();
+            var actual = lista.FirstOrDefault(m => m.IdMatricula == idMatriculaActual);
+            if (actual != null)
+            {
+                if (actual.EstadoMatricula.Equals("Promovido", StringComparison.OrdinalIgnoreCase))
+                    throw new Exception("Validación de Matrícula: El estudiante ya aprobó satisfactoriamente este grado escolar; no puede ser registrado como reprobado ni repetir el año.");
+
+                if (actual.EstadoMatricula.Equals("Estudiante Graduado", StringComparison.OrdinalIgnoreCase))
+                    throw new Exception("Validación de Matrícula: El estudiante ya se encuentra graduado de la institución.");
+
+                if (actual.EstadoMatricula.Equals("Repite Año", StringComparison.OrdinalIgnoreCase) ||
+                    actual.EstadoMatricula.Equals("Repite Ano", StringComparison.OrdinalIgnoreCase))
+                    throw new Exception("Validación de Matrícula: El estudiante ya fue registrado anteriormente como repitente para este año académico.");
+            }
 
             return await _matriculaDal.MatricularMismoAnioAsync(idMatriculaActual, idSeccionNueva);
         }
