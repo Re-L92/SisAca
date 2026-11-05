@@ -198,7 +198,13 @@ namespace SistemaAcademico.UI.Formularios.Matriculas
             string est = estadoEstudiante?.Trim().ToLower() ?? "activo";
             string mat = estadoMatricula?.Trim().ToLower() ?? "activo";
 
-            if (mat == "estudiante graduado" || est == "estudiante graduado")
+            if (est == "inactivo")
+            {
+                lblBadgeEstadoEstudiante.Text = "INACTIVO";
+                lblBadgeEstadoEstudiante.BackColor = Color.FromArgb(254, 226, 226);
+                lblBadgeEstadoEstudiante.ForeColor = Color.FromArgb(153, 27, 27);
+            }
+            else if (mat == "estudiante graduado" || est == "estudiante graduado")
             {
                 lblBadgeEstadoEstudiante.Text = "ESTUDIANTE GRADUADO";
                 lblBadgeEstadoEstudiante.BackColor = Color.FromArgb(254, 243, 199);
@@ -216,12 +222,6 @@ namespace SistemaAcademico.UI.Formularios.Matriculas
                 lblBadgeEstadoEstudiante.BackColor = Color.FromArgb(254, 226, 226);
                 lblBadgeEstadoEstudiante.ForeColor = Color.FromArgb(153, 27, 27);
             }
-            else if (est == "inactivo")
-            {
-                lblBadgeEstadoEstudiante.Text = "INACTIVO";
-                lblBadgeEstadoEstudiante.BackColor = Color.FromArgb(254, 226, 226);
-                lblBadgeEstadoEstudiante.ForeColor = Color.FromArgb(153, 27, 27);
-            }
             else
             {
                 lblBadgeEstadoEstudiante.Text = "ACTIVO (CURSANDO)";
@@ -233,6 +233,31 @@ namespace SistemaAcademico.UI.Formularios.Matriculas
         private void ActualizarPanelDictamen(EvaluacionPromocionModel evaluacion)
         {
             lblDictamen.Text = evaluacion.Dictamen;
+
+            // =========================================================================
+            // VALIDACIÓN: ESTUDIANTE INACTIVO (DADO DE BAJA / RETIRADO)
+            // =========================================================================
+            if (evaluacion.EsInactivo)
+            {
+                lblBadgeEstadoEstudiante.Text = "INACTIVO";
+                lblBadgeEstadoEstudiante.BackColor = Color.FromArgb(254, 226, 226);
+                lblBadgeEstadoEstudiante.ForeColor = Color.FromArgb(153, 27, 27);
+
+                lblDictamen.BackColor = Color.FromArgb(254, 226, 226);
+                lblDictamen.ForeColor = Color.FromArgb(153, 27, 27);
+
+                btnMatricularSiguiente.Text = "Estudiante Inactivo";
+                btnMatricularSiguiente.Enabled = false;
+                btnMatricularSiguiente.BackColor = Color.FromArgb(203, 213, 225);
+
+                btnRepetirAnio.Text = "Estudiante Inactivo";
+                btnRepetirAnio.Enabled = false;
+                btnRepetirAnio.BackColor = Color.FromArgb(203, 213, 225);
+
+                lblEstadoOperacion.Text = "Validación: El estudiante se encuentra en estado INACTIVO. Debe reactivarlo en el módulo de Alumnos.";
+                lblEstadoOperacion.ForeColor = Color.FromArgb(153, 27, 27);
+                return;
+            }
 
             // =========================================================================
             // VALIDACIÓN: ¿YA FUE APROBADO O REPROBADO ANTERIORMENTE?
@@ -419,6 +444,18 @@ namespace SistemaAcademico.UI.Formularios.Matriculas
             // =========================================================================
             // VALIDACIONES DE SEGURIDAD PREVIAS
             // =========================================================================
+            if (_evaluacionActual.EsInactivo || _matriculaSeleccionada.EstadoEstudiante.Equals("Inactivo", StringComparison.OrdinalIgnoreCase))
+            {
+                MessageBox.Show(
+                    "El estudiante se encuentra en estado INACTIVO (dado de baja o retirado de la institución).\n\n" +
+                    "No es posible procesar una matrícula o promoción mientras permanezca inactivo.\n" +
+                    "Debe reactivarlo primero desde el módulo de Alumnos.",
+                    "Estudiante Inactivo",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                return;
+            }
+
             if (_evaluacionActual.YaFueAprobado)
             {
                 MessageBox.Show(
@@ -545,6 +582,18 @@ namespace SistemaAcademico.UI.Formularios.Matriculas
             // =========================================================================
             // VALIDACIONES DE SEGURIDAD PREVIAS
             // =========================================================================
+            if (_evaluacionActual.EsInactivo || _matriculaSeleccionada.EstadoEstudiante.Equals("Inactivo", StringComparison.OrdinalIgnoreCase))
+            {
+                MessageBox.Show(
+                    "El estudiante se encuentra en estado INACTIVO (dado de baja o retirado de la institución).\n\n" +
+                    "No es posible procesar una matrícula o promoción mientras permanezca inactivo.\n" +
+                    "Debe reactivarlo primero desde el módulo de Alumnos.",
+                    "Estudiante Inactivo",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                return;
+            }
+
             if (_evaluacionActual.YaFueAprobado)
             {
                 MessageBox.Show(

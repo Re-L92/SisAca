@@ -58,6 +58,7 @@ namespace SistemaAcademico.BLL
                 IdSeccionActual = matricula.IdSeccion,
                 NombreSeccionActual = matricula.NombreSeccion,
                 EstadoActualMatricula = matricula.EstadoMatricula,
+                EstadoEstudiante = matricula.EstadoEstudiante,
                 Calificaciones = calificaciones ?? new List<CalificacionEntity>()
             };
 
@@ -71,6 +72,18 @@ namespace SistemaAcademico.BLL
                 5 => "11mo Grado (5to Año)",
                 _ => "Graduado"
             };
+
+            // =========================================================================
+            // VALIDACIÓN 0: ¿EL ESTUDIANTE SE ENCUENTRA INACTIVO EN LA INSTITUCIÓN?
+            // =========================================================================
+            if (matricula.EstadoEstudiante.Equals("Inactivo", StringComparison.OrdinalIgnoreCase))
+            {
+                evaluacion.EsInactivo = true;
+                evaluacion.PuedeAvanzar = false;
+                evaluacion.DebeRepetir = false;
+                evaluacion.Dictamen = "ATENCIÓN: El estudiante se encuentra en estado INACTIVO (dado de baja o retirado de la institución). Debe reactivarlo en el módulo de Alumnos antes de gestionar su matrícula o promoción.";
+                return evaluacion;
+            }
 
             // =========================================================================
             // VALIDACIÓN 1: ¿EL ESTUDIANTE YA FUE APROBADO O REPROBADO ANTERIORMENTE?
@@ -220,6 +233,9 @@ namespace SistemaAcademico.BLL
             var actual = lista.FirstOrDefault(m => m.IdMatricula == idMatriculaActual);
             if (actual != null)
             {
+                if (actual.EstadoEstudiante.Equals("Inactivo", StringComparison.OrdinalIgnoreCase))
+                    throw new Exception("Validación de Matrícula: El estudiante se encuentra en estado INACTIVO. Debe reactivarlo en el módulo de Alumnos antes de procesar su matrícula.");
+
                 if (actual.EstadoMatricula.Equals("Promovido", StringComparison.OrdinalIgnoreCase))
                     throw new Exception("Validación de Matrícula: El estudiante ya ha sido aprobado y promovido anteriormente al siguiente grado académico.");
 
@@ -247,6 +263,9 @@ namespace SistemaAcademico.BLL
             var actual = lista.FirstOrDefault(m => m.IdMatricula == idMatriculaActual);
             if (actual != null)
             {
+                if (actual.EstadoEstudiante.Equals("Inactivo", StringComparison.OrdinalIgnoreCase))
+                    throw new Exception("Validación de Matrícula: El estudiante se encuentra en estado INACTIVO. Debe reactivarlo en el módulo de Alumnos antes de procesar su matrícula.");
+
                 if (actual.EstadoMatricula.Equals("Promovido", StringComparison.OrdinalIgnoreCase))
                     throw new Exception("Validación de Matrícula: El estudiante ya aprobó satisfactoriamente este grado escolar; no puede ser registrado como reprobado ni repetir el año.");
 

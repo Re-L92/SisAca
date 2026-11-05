@@ -14,6 +14,8 @@ namespace SistemaAcademico.Entidades.Entidades
         public int IdSeccionActual { get; set; }
         public string NombreSeccionActual { get; set; } = string.Empty;
         public string EstadoActualMatricula { get; set; } = string.Empty;
+        public string EstadoEstudiante { get; set; } = "Activo";
+        public bool EsInactivo { get; set; }
 
         public int TotalMaterias { get; set; }
         public int MateriasAprobadas { get; set; }
