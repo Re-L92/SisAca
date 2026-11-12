@@ -2,6 +2,7 @@ using System;
 using System.Drawing;
 using System.Windows.Forms;
 using SistemaAcademico.UI.Formularios.Alumnos;
+using SistemaAcademico.UI.Formularios.Boletines;
 using SistemaAcademico.UI.Formularios.Calificaciones;
 using SistemaAcademico.UI.Formularios.Docentes;
 using SistemaAcademico.UI.Formularios.Matriculas;
@@ -92,6 +93,12 @@ namespace SistemaAcademico.UI
         {
             ActivarBoton(btnMenuCalificaciones);
             AbrirFormularioEnPanel(new FrmGestionCalificaciones(), "Calificaciones y Mapeo Curricular");
+        }
+
+        private void btnMenuBoletin_Click(object sender, EventArgs e)
+        {
+            ActivarBoton(btnMenuBoletin);
+            AbrirFormularioEnPanel(new FrmBoletin(), "Boletín de Calificaciones");
         }
 
         private void btnMenuConfiguracion_Click(object sender, EventArgs e)

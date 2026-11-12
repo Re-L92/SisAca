@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+  <title>Defensa de Proyecto - Sistema Académico SisAca</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-light: #60a5fa;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --code-bg: #0b1120;
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f8fafc;
+        --card-bg: #ffffff;
+        --card-border: #e2e8f0;
+        --text-main: #0f172a;
+        --text-muted: #64748b;
+        --primary: #2563eb;
+        --primary-light: #3b82f6;
+        --success: #059669;
+        --warning: #d97706;
+        --danger: #dc2626;
+        --code-bg: #1e293b;
+      }
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      padding: 12px;
+      -webkit-font-smoothing: antialiased;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    header {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 18px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    .badge-header {
+      display: inline-block;
+      padding: 4px 10px;
+      background: rgba(59, 130, 246, 0.15);
+      color: var(--primary);
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 800;
+      line-height: 1.3;
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    nav {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+      margin: 14px 0 6px 0;
+      -webkit-overflow-scrolling: touch;
+    }
+    nav a {
+      white-space: nowrap;
+      text-decoration: none;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 7px 12px;
+      background: rgba(148, 163, 184, 0.1);
+      color: var(--text-main);
+      border-radius: 8px;
+      border: 1px solid var(--card-border);
+      transition: all 0.2s;
+    }
+    nav a:hover, nav a:active {
+      background: var(--primary);
+      color: #ffffff;
+      border-color: var(--primary);
+    }
+    .section-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 18px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    .section-title {
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 8px;
+    }
+    .speech-box {
+      background: rgba(245, 158, 11, 0.1);
+      border-left: 4px solid var(--warning);
+      padding: 12px 14px;
+      border-radius: 0 10px 10px 0;
+      margin: 14px 0;
+      font-size: 13px;
+    }
+    .speech-title {
+      font-weight: 800;
+      color: var(--warning);
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tech-box {
+      background: rgba(59, 130, 246, 0.08);
+      border-left: 4px solid var(--primary);
+      padding: 12px 14px;
+      border-radius: 0 10px 10px 0;
+      margin: 14px 0;
+      font-size: 13px;
+    }
+    .tech-title {
+      font-weight: 800;
+      color: var(--primary);
+      margin-bottom: 4px;
+    }
+    pre {
+      background: var(--code-bg);
+      color: #f1f5f9;
+      padding: 14px;
+      border-radius: 10px;
+      overflow-x: auto;
+      font-size: 11.5px;
+      line-height: 1.5;
+      margin: 12px 0;
+      border: 1px solid #334155;
+    }
+    code {
+      font-family: Consolas, Monaco, "Courier New", monospace;
+    }
+    .code-tag {
+      display: inline-block;
+      font-size: 10.5px;
+      font-weight: 700;
+      background: #334155;
+      color: #93c5fd;
+      padding: 2px 8px;
+      border-radius: 6px;
+      margin-bottom: 6px;
+    }
+    ul, ol {
+      padding-left: 20px;
+      font-size: 13px;
+      margin: 8px 0;
+    }
+    li {
+      margin-bottom: 6px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 11px;
+    }
+    .badge-green { background: #dcfce7; color: #166534; }
+    .badge-blue { background: #dbeafe; color: #1e40af; }
+    .badge-red { background: #fee2e2; color: #991b1b; }
+    .badge-amber { background: #fef3c7; color: #92400e; }
+    .flow-diagram {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin: 14px 0;
+    }
+    .flow-step {
+      background: rgba(148, 163, 184, 0.08);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 12px;
+    }
+    .flow-step strong {
+      color: var(--primary-light);
+    }
+    .qa-box {
+      background: rgba(239, 68, 68, 0.08);
+      border-left: 4px solid var(--danger);
+      padding: 12px 14px;
+      border-radius: 0 10px 10px 0;
+      margin: 12px 0;
+    }
+    .qa-question {
+      font-weight: 800;
+      color: var(--danger);
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+    .qa-answer {
+      font-size: 12.5px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+
+    <!-- HEADER PRINCIPAL -->
+    <header>
+      <div class="badge-header">📱 Guía Completa de Estudio Móvil / PC</div>
+      <h1>Defensa del Módulo de Matrículas y Promoción</h1>
+      <p class="subtitle">Sistema Académico SisAca — Todo el código, conexión entre capas y respuestas exactas para el profesor.</p>
+      
+      <nav>
+        <a href="#arquitectura">1. Arquitectura 4 Capas</a>
+        <a href="#bd">2. Base de Datos & SPs</a>
+        <a href="#entidades">3. Entidades & DTOs</a>
+        <a href="#dal">4. Capa DAL</a>
+        <a href="#bll">5. Capa BLL</a>
+        <a href="#ui">6. Capa UI & Formularios</a>
+        <a href="#examen">7. Examen en Vivo (F5)</a>
+      </nav>
+    </header>
+
+    <!-- 1. ARQUITECTURA GENERAL -->
+    <section id="arquitectura" class="section-card">
+      <div class="section-title">🏛️ 1. Arquitectura en 4 Capas y Flujo de Comunicación</div>
+      
+      <div class="speech-box">
+        <div class="speech-title">🎙️ Lo que le dices al profesor para iniciar:</div>
+        <em>"Profesor, nuestro sistema no es un monolito desordenado. Está construido bajo la arquitectura profesional de <strong>4 Capas Desacopladas (N-Tier)</strong>. Cada capa tiene una única responsabilidad:
+        <br>1) <strong>UI:</strong> Presenta los datos y captura los eventos del usuario.
+        <br>2) <strong>BLL:</strong> Contiene todas las reglas de negocio institucionales y cálculos.
+        <br>3) <strong>DAL:</strong> Conecta a SQL Server sin escribir consultas SQL en C#, usando solo Stored Procedures.
+        <br>4) <strong>Entidades:</strong> Estructuras fuertemente tipadas que viajan entre todas las capas."</em>
+      </div>
+
+      <div class="flow-diagram">
+        <div class="flow-step">
+          <strong>1. El Usuario hace clic en UI (FrmGestionMatricula):</strong><br>
+          El formulario captura el evento (ejemplo: escribir en el buscador o presionar "Matricular") y llama a la clase <code>_matriculaBll</code>.
+        </div>
+        <div class="flow-step">
+          <strong>2. La Capa BLL (MatriculaBll) toma el control:</strong><br>
+          Evalúa las reglas: ¿El estudiante está Inactivo? ¿Ya fue promovido? ¿Cuántas materias reprobó? Si todo es válido, llama a la clase <code>_matriculaDal</code>.
+        </div>
+        <div class="flow-step">
+          <strong>3. La Capa DAL (MatriculaDal) abre la conexión:</strong><br>
+          Crea el objeto <code>SqlConnection</code>, configura <code>SqlCommand</code> con <code>CommandType.StoredProcedure</code>, envía los parámetros tipados y ejecuta la consulta.
+        </div>
+        <div class="flow-step">
+          <strong>4. SQL Server ejecuta el Procedimiento Almacenado:</strong><br>
+          La base de datos ejecuta el SP dentro de una transacción segura (ACID), aplica bloqueos de cupos y devuelve el resultado. El DAL lo convierte a objetos y la UI lo muestra en pantalla.
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. BASE DE DATOS Y STORED PROCEDURES -->
+    <section id="bd" class="section-card">
+      <div class="section-title">🗄️ 2. Base de Datos y Stored Procedures (`Script_DB_GestionAcademica.sql`)</div>
+
+      <p style="font-size: 13px; margin-bottom: 10px;">
+        En la base de datos se implementaron tablas en 3ra Forma Normal (3FN), índices filtrados y Stored Procedures transaccionales. Aquí está el código exacto:
+      </p>
+
+      <!-- SP 1 -->
+      <span class="code-tag">SQL Server — SP_ListarMatriculas (Evita duplicados al pasar de año)</span>
+      <pre><code>CREATE OR ALTER PROCEDURE dbo.SP_ListarMatriculas
+    @IdAnio INT = 0,
+    @IdSeccion INT = 0,
+    @Filtro NVARCHAR(100) = ''
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- CTE que numera las matrículas de cada alumno por fecha descendente
+    WITH UltimaMatricula AS (
+        SELECT 
+            m.IdMatricula,
+            m.IdEstudiante,
+            m.IdAnio,
+            m.IdSeccion,
+            m.FechaMatricula,
+            m.EstadoMatricula,
+            ROW_NUMBER() OVER (PARTITION BY m.IdEstudiante ORDER BY m.IdMatricula DESC) AS Fila
+        FROM dbo.Matricula m
+        WHERE m.EstadoMatricula &lt;&gt; 'Cancelado'
+    )
+    SELECT 
+        um.IdMatricula,
+        e.IdEstudiante,
+        e.CodigoEstudiante,
+        CONCAT(e.Nombres, ' ', e.Apellidos) AS NombreEstudiante,
+        e.Estado AS EstadoEstudiante, -- &lt;-- Devuelve si está Activo o Inactivo
+        an.IdAnio,
+        an.NombreAnio,
+        an.Ciclo,
+        sec.IdSeccion,
+        sec.NombreSeccion,
+        um.FechaMatricula,
+        um.EstadoMatricula,
+        ISNULL(CONCAT(doc.Nombres, ' ', doc.Apellidos), 'Sin Docente Guía') AS DocenteGuia,
+        ISNULL(aus.Aula, 'Por Asignar') AS Aula
+    FROM UltimaMatricula um
+    INNER JOIN dbo.Estudiante e ON um.IdEstudiante = e.IdEstudiante
+    INNER JOIN dbo.AnioAcademico an ON um.IdAnio = an.IdAnio
+    INNER JOIN dbo.Seccion sec ON um.IdSeccion = sec.IdSeccion
+    LEFT JOIN dbo.Aula_Seccion aus ON aus.IdAnio = um.IdAnio AND aus.IdSeccion = um.IdSeccion
+    LEFT JOIN dbo.Docente doc ON aus.IdDocenteGuia = doc.IdDocente
+    WHERE um.Fila = 1 -- &lt;-- ¡ESTA LÍNEA ELIMINA EL ERROR DE APARECER EN DOS AÑOS!
+      AND (@IdAnio = 0 OR um.IdAnio = @IdAnio)
+      AND (@IdSeccion = 0 OR um.IdSeccion = @IdSeccion)
+      AND (@Filtro = '' 
+           OR e.CodigoEstudiante LIKE '%' + @Filtro + '%'
+           OR e.Nombres LIKE '%' + @Filtro + '%'
+           OR e.Apellidos LIKE '%' + @Filtro + '%')
+    ORDER BY um.IdMatricula DESC;
+END;</code></pre>
+
+      <div class="tech-box">
+        <div class="tech-title">🔍 Explicación profunda de SP_ListarMatriculas:</div>
+        <ul>
+          <li><strong>¿Por qué el alumno aparecía en 7mo y 8vo a la vez?</strong> Porque en la tabla <code>Matricula</code> quedaba el registro del año viejo y se creaba el registro del año nuevo. Al hacer un SELECT normal, traía ambos.</li>
+          <li><strong>¿Cómo se resolvió?</strong> Con la función de ventana <code>ROW_NUMBER() OVER (PARTITION BY m.IdEstudiante ORDER BY m.IdMatricula DESC)</code>. A la matrícula más nueva le pone Fila = 1 y a la anterior Fila = 2. Al poner <code>WHERE um.Fila = 1</code>, <strong>únicamente se muestra el año que está cursando actualmente</strong>.</li>
+        </ul>
+      </div>
+
+      <!-- SP 2 -->
+      <span class="code-tag">SQL Server — SP_MatricularSiguienteAnio (Transaccional)</span>
+      <pre><code>CREATE OR ALTER PROCEDURE dbo.SP_MatricularSiguienteAnio
+    @IdMatriculaActual INT,
+    @IdSeccionNueva INT,
+    @NuevoIdMatricula INT OUTPUT,
+    @MensajeResultado NVARCHAR(200) OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRANSACTION; -- &lt;-- Transacción ACID
+    BEGIN TRY
+        DECLARE @IdEstudiante INT, @IdAnioActual INT, @NombreAnioActual NVARCHAR(50), @EstadoMatriculaActual NVARCHAR(30);
+
+        SELECT @IdEstudiante = m.IdEstudiante, @IdAnioActual = m.IdAnio, 
+               @NombreAnioActual = a.NombreAnio, @EstadoMatriculaActual = m.EstadoMatricula
+        FROM dbo.Matricula m INNER JOIN dbo.AnioAcademico a ON m.IdAnio = a.IdAnio
+        WHERE m.IdMatricula = @IdMatriculaActual;
+
+        -- 1. Validar que no haya sido ya aprobado o reprobado
+        IF @EstadoMatriculaActual IN ('Promovido', 'Estudiante Graduado')
+            RAISERROR('El estudiante ya ha sido promovido anteriormente.', 16, 1);
+
+        -- 2. Caso especial: Alumno de 11mo Grado (5to Año) -&gt; Graduación
+        IF @NombreAnioActual = '11mo Grado' OR @IdAnioActual = 5
+        BEGIN
+            UPDATE dbo.Matricula SET EstadoMatricula = 'Estudiante Graduado' WHERE IdMatricula = @IdMatriculaActual;
+            UPDATE dbo.Estudiante SET Estado = 'Estudiante Graduado' WHERE IdEstudiante = @IdEstudiante;
+            SET @NuevoIdMatricula = @IdMatriculaActual;
+            SET @MensajeResultado = '¡Felicidades, estudiante graduado!';
+            COMMIT TRANSACTION;
+            RETURN;
+        END
+
+        -- 3. Calcular el año consecutivo siguiente
+        DECLARE @IdAnioNuevo INT = @IdAnioActual + 1;
+        DECLARE @NombreAnioNuevo NVARCHAR(50) = (SELECT NombreAnio FROM dbo.AnioAcademico WHERE IdAnio = @IdAnioNuevo);
+
+        -- 4. Validar límite de cupo en la sección (&lt; 40)
+        DECLARE @CuposOcupados INT = (SELECT COUNT(1) FROM dbo.Matricula WHERE IdAnio = @IdAnioNuevo AND IdSeccion = @IdSeccionNueva AND EstadoMatricula = 'Activo');
+        IF @CuposOcupados &gt;= 40
+            RAISERROR('La sección ha alcanzado su cupo máximo de 40 estudiantes.', 16, 1);
+
+        -- 5. Cambiar estado anterior a 'Promovido'
+        UPDATE dbo.Matricula SET EstadoMatricula = 'Promovido' WHERE IdMatricula = @IdMatriculaActual;
+
+        -- 6. Insertar nueva matrícula activa
+        INSERT INTO dbo.Matricula (IdEstudiante, IdAnio, IdSeccion, FechaMatricula, EstadoMatricula)
+        VALUES (@IdEstudiante, @IdAnioNuevo, @IdSeccionNueva, GETDATE(), 'Activo');
+        SET @NuevoIdMatricula = SCOPE_IDENTITY();
+
+        -- 7. Precarga automática de la malla de asignaturas para el nuevo grado
+        INSERT INTO dbo.Calificacion (IdMatricula, IdAsignatura, EstadoAsignatura, Observacion)
+        SELECT @NuevoIdMatricula, ga.IdAsignatura, 'En proceso', 'Inscripción de nuevo año académico'
+        FROM dbo.Grado_Asignatura ga WHERE ga.IdAnio = @IdAnioNuevo;
+
+        SET @MensajeResultado = CONCAT('¡Estudiante promovido exitosamente en ', @NombreAnioNuevo, '!');
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION; -- Si algo falla, revierte todo para no dejar datos corruptos
+        THROW;
+    END CATCH
+END;</code></pre>
+    </section>
+
+    <!-- 3. ENTIDADES Y DTO -->
+    <section id="entidades" class="section-card">
+      <div class="section-title">📦 3. Capa de Entidades (`MatriculaEntity.cs` y `EvaluacionPromocionModel.cs`)</div>
+
+      <p style="font-size: 13px; margin-bottom: 10px;">
+        Las entidades no contienen lógica de base de datos. Su trabajo es modelar la información con <strong>encapsulamiento</strong> (propiedades con `private set` protegidas por métodos).
+      </p>
+
+      <span class="code-tag">C# — EvaluacionPromocionModel.cs (Modelo DTO)</span>
+      <pre><code>namespace SistemaAcademico.Entidades.Entidades
+{
+    public class EvaluacionPromocionModel
+    {
+        public int IdMatricula { get; set; }
+        public int IdEstudiante { get; set; }
+        public string CodigoEstudiante { get; set; } = string.Empty;
+        public string NombreEstudiante { get; set; } = string.Empty;
+        public int IdAnioActual { get; set; }
+        public string NombreAnioActual { get; set; } = string.Empty;
+        public int IdSeccionActual { get; set; }
+        public string NombreSeccionActual { get; set; } = string.Empty;
+        public string EstadoActualMatricula { get; set; } = string.Empty;
+        public string EstadoEstudiante { get; set; } = "Activo"; // 'Activo' o 'Inactivo'
+
+        // Métricas de calificaciones
+        public int TotalMaterias { get; set; }
+        public int MateriasAprobadas { get; set; }
+        public int MateriasReprobadas { get; set; }
+        public int MateriasEnReparacion { get; set; }
+        public int MateriasEnProceso { get; set; }
+        public decimal PromedioFinal { get; set; }
+
+        // Banderas de decisión académica
+        public bool PuedeAvanzar { get; set; }
+        public bool EsGraduado { get; set; }
+        public bool DebeRepetir { get; set; }
+        public bool EnReparacion { get; set; }
+        public bool TieneNotasIncompletas { get; set; }
+
+        // Banderas de validación histórica y seguridad
+        public bool YaFueAprobado { get; set; }
+        public bool YaFueReprobado { get; set; }
+        public bool YaGraduado { get; set; }
+        public bool EsInactivo { get; set; }
+
+        public string Dictamen { get; set; } = string.Empty;
+        public string SiguienteAnioNombre { get; set; } = string.Empty;
+        public int SiguienteIdAnio { get; set; }
+    }
+}</code></pre>
+    </section>
+
+    <!-- 4. CAPA DAL -->
+    <section id="dal" class="section-card">
+      <div class="section-title">🔌 4. Capa de Acceso a Datos (`MatriculaDal.cs`)</div>
+
+      <div class="speech-box">
+        <div class="speech-title">🎙️ Lo que le dices al profesor sobre el DAL:</div>
+        <em>"Profesor, en `MatriculaDal.cs` aplicamos el estándar ADO.NET estricto sin frameworks pesados ni ORMs lentos. Todo se ejecuta de forma asíncrona mediante `async/await` para no congelar la pantalla. Configuramos el `CommandType.StoredProcedure` y pasamos parámetros con su tipo SQL exacto, garantizando rendimiento y seguridad total contra inyecciones SQL."</em>
+      </div>
+
+      <span class="code-tag">C# — MatriculaDal.cs (ListarMatriculasAsync)</span>
+      <pre><code>public async Task&lt;List&lt;MatriculaEntity&gt;&gt; ListarMatriculasAsync(int idAnio = 0, int idSeccion = 0, string filtro = "")
+{
+    var lista = new List&lt;MatriculaEntity&gt;();
+
+    using SqlConnection cn = Conexion.ObtenerConexion();
+    using SqlCommand cmd = new("dbo.SP_ListarMatriculas", cn)
+    {
+        CommandType = CommandType.StoredProcedure // &lt;-- CERO SQL EN TEXTO PLANO
+    };
+
+    cmd.Parameters.Add("@IdAnio", SqlDbType.Int).Value = idAnio;
+    cmd.Parameters.Add("@IdSeccion", SqlDbType.Int).Value = idSeccion;
+    cmd.Parameters.Add("@Filtro", SqlDbType.NVarChar, 100).Value = filtro?.Trim() ?? string.Empty;
+
+    await cn.OpenAsync();
+    using SqlDataReader dr = await cmd.ExecuteReaderAsync();
+
+    while (await dr.ReadAsync())
+    {
+        MatriculaEntity matricula = new();
+        matricula.AsignarId(Convert.ToInt32(dr["IdMatricula"]));
+
+        // Leemos el estado del estudiante devuelto por el SP
+        string estadoEstudiante = dr["EstadoEstudiante"] != DBNull.Value 
+            ? dr["EstadoEstudiante"].ToString() 
+            : "Activo";
+
+        matricula.AsignarEstudiante(
+            Convert.ToInt32(dr["IdEstudiante"]),
+            dr["CodigoEstudiante"].ToString(),
+            dr["NombreEstudiante"].ToString(),
+            estadoEstudiante
+        );
+
+        matricula.AsignarAnioSeccion(
+            Convert.ToInt32(dr["IdAnio"]),
+            dr["NombreAnio"].ToString(),
+            dr["Ciclo"] != DBNull.Value ? dr["Ciclo"].ToString() : string.Empty,
+            Convert.ToInt32(dr["IdSeccion"]),
+            dr["NombreSeccion"].ToString()
+        );
+
+        matricula.AsignarDetalles(
+            Convert.ToDateTime(dr["FechaMatricula"]),
+            dr["EstadoMatricula"].ToString(),
+            dr["DocenteGuia"].ToString(),
+            dr["Aula"].ToString(),
+            estadoEstudiante
+        );
+
+        lista.Add(matricula);
+    }
+
+    return lista;
+}</code></pre>
+
+      <span class="code-tag">C# — MatriculaDal.cs (MatricularSiguienteAnioAsync)</span>
+      <pre><code>public async Task&lt;(int NuevoIdMatricula, string Mensaje)&gt; MatricularSiguienteAnioAsync(int idMatriculaActual, int idSeccionNueva)
+{
+    using SqlConnection cn = Conexion.ObtenerConexion();
+    using SqlCommand cmd = new("dbo.SP_MatricularSiguienteAnio", cn)
+    {
+        CommandType = CommandType.StoredProcedure
+    };
+
+    cmd.Parameters.Add("@IdMatriculaActual", SqlDbType.Int).Value = idMatriculaActual;
+    cmd.Parameters.Add("@IdSeccionNueva", SqlDbType.Int).Value = idSeccionNueva;
+
+    // Parámetros de salida (OUTPUT)
+    SqlParameter paramNuevoId = new("@NuevoIdMatricula", SqlDbType.Int) { Direction = ParameterDirection.Output };
+    SqlParameter paramMensaje = new("@MensajeResultado", SqlDbType.NVarChar, 200) { Direction = ParameterDirection.Output };
+    cmd.Parameters.Add(paramNuevoId);
+    cmd.Parameters.Add(paramMensaje);
+
+    await cn.OpenAsync();
+    await cmd.ExecuteNonQueryAsync();
+
+    int nuevoId = (paramNuevoId.Value != DBNull.Value) ? Convert.ToInt32(paramNuevoId.Value) : 0;
+    string mensaje = paramMensaje.Value?.ToString() ?? "Operación completada.";
+
+    return (nuevoId, mensaje);
+}</code></pre>
+    </section>
+
+    <!-- 5. CAPA BLL -->
+    <section id="bll" class="section-card">
+      <div class="section-title">🧠 5. Capa de Lógica de Negocio (`MatriculaBll.cs`)</div>
+
+      <div class="speech-box">
+        <div class="speech-title">🎙️ Lo que le dices al profesor sobre la BLL:</div>
+        <em>"En `MatriculaBll.cs` está el cerebro del software. Es la capa que aplica las políticas del Ministerio de Educación y del colegio: valida si un estudiante está retirado (Inactivo), calcula si con el 50% de cada semestre pasa la materia con al menos 60 puntos, verifica si acumuló 3 materias a reparación (en cuyo caso repite el año completo), y si aprobó todo, lo promueve o gradúa."</em>
+      </div>
+
+      <span class="code-tag">C# — MatriculaBll.cs (EvaluarPromocionEstudiante)</span>
+      <pre><code>public EvaluacionPromocionModel EvaluarPromocionEstudiante(MatriculaEntity matricula, List&lt;CalificacionEntity&gt; calificaciones)
+{
+    var evaluacion = new EvaluacionPromocionModel
+    {
+        IdMatricula = matricula.IdMatricula,
+        IdEstudiante = matricula.IdEstudiante,
+        CodigoEstudiante = matricula.CodigoEstudiante,
+        NombreEstudiante = matricula.NombreEstudiante,
+        IdAnioActual = matricula.IdAnio,
+        NombreAnioActual = matricula.NombreAnio,
+        EstadoActualMatricula = matricula.EstadoMatricula,
+        EstadoEstudiante = matricula.EstadoEstudiante
+    };
+
+    // =========================================================================
+    // REGLA 0: VALIDACIÓN DE ESTUDIANTE INACTIVO (DADO DE BAJA / EXPULSADO)
+    // =========================================================================
+    if (matricula.EstadoEstudiante.Equals("Inactivo", StringComparison.OrdinalIgnoreCase))
+    {
+        evaluacion.EsInactivo = true;
+        evaluacion.PuedeAvanzar = false;
+        evaluacion.DebeRepetir = false;
+        evaluacion.Dictamen = "ATENCIÓN: El estudiante se encuentra en estado INACTIVO. Debe reactivarlo en Alumnos antes de matricularlo.";
+        return evaluacion;
+    }
+
+    // =========================================================================
+    // REGLA 1: VALIDACIÓN DE NO DUPLICIDAD DE PROMOCIÓN O REPETICIÓN
+    // =========================================================================
+    if (matricula.EstadoMatricula.Equals("Promovido", StringComparison.OrdinalIgnoreCase))
+    {
+        evaluacion.YaFueAprobado = true;
+        evaluacion.Dictamen = "ATENCIÓN: El estudiante ya ha sido APROBADO y PROMOVIDO anteriormente a este grado.";
+        return evaluacion;
+    }
+    if (matricula.EstadoMatricula.Equals("Repite Año", StringComparison.OrdinalIgnoreCase))
+    {
+        evaluacion.YaFueReprobado = true;
+        evaluacion.Dictamen = "ATENCIÓN: El estudiante ya fue registrado anteriormente como repitente.";
+        return evaluacion;
+    }
+
+    // =========================================================================
+    // REGLA 2: EVALUACIÓN DE MATERIAS Y CALIFICACIONES (50% Semestre I + 50% Semestre II)
+    // =========================================================================
+    int aprobadas = 0, enReparacion = 0, reprobadas = 0, enProceso = 0;
+    decimal sumaFinales = 0;
+
+    foreach (var cal in calificaciones)
+    {
+        cal.CalcularResultado(); // 0.50 * SemestreI + 0.50 * SemestreII
+        if (cal.NotaFinal.HasValue)
+        {
+            decimal nota = cal.NotaReparacion.HasValue ? cal.NotaReparacion.Value : cal.NotaFinal.Value;
+            sumaFinales += nota;
+        }
+
+        switch (cal.EstadoAsignatura.Trim().ToLower())
+        {
+            case "aprobada": aprobadas++; break;
+            case "reparación": enReparacion++; break;
+            case "reprobada": reprobadas++; break;
+            default: enProceso++; break;
+        }
+    }
+
+    // Regla Institucional: 3 o más clases a reparar -&gt; Repite Año
+    if ((enReparacion + reprobadas) &gt;= 3)
+    {
+        evaluacion.DebeRepetir = true;
+        evaluacion.Dictamen = $"Reprobó/Dejó a reparación {enReparacion + reprobadas} asignaturas (Máximo permitido: 2). Debe repetir el año escolar.";
+        return evaluacion;
+    }
+
+    // Regla: 100% de asignaturas aprobadas
+    if (aprobadas == calificaciones.Count &amp;&amp; calificaciones.Count &gt; 0)
+    {
+        if (matricula.IdAnio == 5) // 11mo Grado / 5to Año
+        {
+            evaluacion.EsGraduado = true;
+            evaluacion.Dictamen = "¡Felicidades, estudiante graduado! Ha completado exitosamente su bachillerato.";
+        }
+        else
+        {
+            evaluacion.PuedeAvanzar = true;
+            evaluacion.Dictamen = $"Todas las asignaturas aprobadas (Promedio: {evaluacion.PromedioFinal:N2}). Apto para matricularse en {evaluacion.SiguienteAnioNombre}.";
+        }
+    }
+
+    return evaluacion;
+}</code></pre>
+    </section>
+
+    <!-- 6. CAPA UI -->
+    <section id="ui" class="section-card">
+      <div class="section-title">🖥️ 6. Capa de Presentación (`FrmGestionMatricula.cs`)</div>
+
+      <div class="speech-box">
+        <div class="speech-title">🎙️ Lo que le dices al profesor sobre los Formularios:</div>
+        <em>"En la interfaz gráfica implementamos una tarjeta de expediente que cambia de color dinámicamente con badges visuales. Si el estudiante está Inactivo, el badge se vuelve rojo de inmediato y bloquea los botones. Si ya aprobó, el botón muestra 'Ya Aprobado / Promovido' y se desactiva en gris para impedir errores humanos del usuario."</em>
+      </div>
+
+      <span class="code-tag">C# — FrmGestionMatricula.cs (ActualizarBadgeEstadoEstudiante)</span>
+      <pre><code>private void ActualizarBadgeEstadoEstudiante(string estadoEstudiante, string estadoMatricula)
+{
+    string est = estadoEstudiante?.Trim().ToLower() ?? "activo";
+    string mat = estadoMatricula?.Trim().ToLower() ?? "activo";
+
+    // 1. PRIORIDAD MÁXIMA: Si el alumno está dado de baja, siempre se marca INACTIVO
+    if (est == "inactivo")
+    {
+        lblBadgeEstadoEstudiante.Text = "INACTIVO";
+        lblBadgeEstadoEstudiante.BackColor = Color.FromArgb(254, 226, 226); // Rojo suave
+        lblBadgeEstadoEstudiante.ForeColor = Color.FromArgb(153, 27, 27);  // Rojo oscuro
+    }
+    else if (mat == "estudiante graduado" || est == "estudiante graduado")
+    {
+        lblBadgeEstadoEstudiante.Text = "ESTUDIANTE GRADUADO";
+        lblBadgeEstadoEstudiante.BackColor = Color.FromArgb(254, 243, 199); // Ámbar dorado
+        lblBadgeEstadoEstudiante.ForeColor = Color.FromArgb(146, 64, 14);
+    }
+    else if (mat == "promovido")
+    {
+        lblBadgeEstadoEstudiante.Text = "APROBADO / PROMOVIDO";
+        lblBadgeEstadoEstudiante.BackColor = Color.FromArgb(219, 234, 254); // Azul suave
+        lblBadgeEstadoEstudiante.ForeColor = Color.FromArgb(30, 64, 175);
+    }
+    else if (mat == "repite año" || mat == "repite ano")
+    {
+        lblBadgeEstadoEstudiante.Text = "REPROBADO / REPITE AÑO";
+        lblBadgeEstadoEstudiante.BackColor = Color.FromArgb(254, 226, 226); // Rojo
+        lblBadgeEstadoEstudiante.ForeColor = Color.FromArgb(153, 27, 27);
+    }
+    else
+    {
+        lblBadgeEstadoEstudiante.Text = "ACTIVO (CURSANDO)";
+        lblBadgeEstadoEstudiante.BackColor = Color.FromArgb(220, 252, 231); // Verde suave
+        lblBadgeEstadoEstudiante.ForeColor = Color.FromArgb(22, 101, 52);   // Verde oscuro
+    }
+}</code></pre>
+    </section>
+
+    <!-- 7. EXAMEN EN VIVO -->
+    <section id="examen" class="section-card">
+      <div class="section-title">🎓 7. Cómo Hacer la Demostración en Vivo Frente al Profesor</div>
+
+      <ol>
+        <li><strong>Abre Visual Studio y dale F5:</strong> Muestra que el proyecto compila limpio con <strong>0 Errores y 0 Advertencias</strong>.</li>
+        <li><strong>Inicia Sesión:</strong> Usuario <code>admin</code>, Clave <code>admin123</code>.</li>
+        <li><strong>Entra a "Matrículas":</strong> Haz clic en el botón del menú lateral para cargar `FrmGestionMatricula`.</li>
+        <li><strong>Prueba el buscador reactivo:</strong> Escribe una letra o número de carnet y muestra que filtra sin recargar toda la ventana.</li>
+        <li><strong>Selecciona un alumno aprobado:</strong>
+          <ul>
+            <li>Muestra que el badge superior dice <span class="badge badge-green">ACTIVO (CURSANDO)</span> o <span class="badge badge-blue">APROBADO</span>.</li>
+            <li>Muestra las notas de los dos semestres y el dictamen pedagógico en verde.</li>
+            <li>Haz clic en <strong>"Matricular en Siguiente Año"</strong>: muestra cómo se abre `FrmConfirmarMatricula` indicando las secciones (A, B, C) y cuántos cupos libres quedan para no superar los 40 alumnos.</li>
+          </ul>
+        </li>
+        <li><strong>Muestra la protección contra errores:</strong> Si intentas volver a matricular al alumno promovido, muestra que el botón dice <code>[Ya Aprobado / Promovido]</code> y está deshabilitado en gris.</li>
+        <li><strong>Muestra el control de Inactivos:</strong> Si un alumno fue dado de baja en Alumnos, su badge es <span class="badge badge-red">INACTIVO</span> y el sistema le impide matricularse hasta ser reactivado.</li>
+      </ol>
+
+      <div class="qa-box">
+        <div class="qa-question">❓ Pregunta Clave: "¿Por qué crearon un procedimiento almacenado en vez de hacerlo en C#?"</div>
+        <div class="qa-answer"><strong>Tu respuesta:</strong> <em>"Por tres motivos fundamentales, profesor: <strong>1) Seguridad:</strong> elimina el riesgo de Inyección SQL. <strong>2) Rendimiento:</strong> SQL Server compila y memoriza el plan de ejecución del SP en memoria. <strong>3) Atomicidad:</strong> Usamos <code>BEGIN TRANSACTION / COMMIT / ROLLBACK</code> para que, si falla la inserción de materias, no quede la matrícula a medias."</em></div>
+      </div>
+
+      <div class="qa-box">
+        <div class="qa-question">❓ Pregunta Clave: "¿Cómo evitaron que un alumno aparezca en dos grados a la vez al ser promovido?"</div>
+        <div class="qa-answer"><strong>Tu respuesta:</strong> <em>"En el procedimiento <code>SP_ListarMatriculas</code> aplicamos una CTE con <code>ROW_NUMBER() OVER (PARTITION BY IdEstudiante ORDER BY IdMatricula DESC) AS Fila</code>. Al filtrar con <code>WHERE Fila = 1</code>, el sistema solo toma la matrícula activa más reciente, garantizando que el alumno no se duplique."</em></div>
+      </div>
+    </section>
+
+  </div>
+
+</body>
+</html>

@@ -22,6 +22,7 @@ namespace SistemaAcademico.UI
             btnMenuEstudiantes = new System.Windows.Forms.Button();
             btnMenuMatriculas = new System.Windows.Forms.Button();
             btnMenuCalificaciones = new System.Windows.Forms.Button();
+            btnMenuBoletin = new System.Windows.Forms.Button();
             pnlSidebarSeparador = new System.Windows.Forms.Panel();
             btnMenuConfiguracion = new System.Windows.Forms.Button();
             btnMenuSalir = new System.Windows.Forms.Button();
@@ -40,6 +41,7 @@ namespace SistemaAcademico.UI
             // pnlSidebar
             // 
             pnlSidebar.BackColor = System.Drawing.Color.FromArgb(15, 23, 42);
+            pnlSidebar.Controls.Add(btnMenuBoletin);
             pnlSidebar.Controls.Add(btnMenuCalificaciones);
             pnlSidebar.Controls.Add(btnMenuMatriculas);
             pnlSidebar.Controls.Add(btnMenuEstudiantes);
@@ -130,13 +132,32 @@ namespace SistemaAcademico.UI
             btnMenuCalificaciones.UseVisualStyleBackColor = false;
             btnMenuCalificaciones.Click += btnMenuCalificaciones_Click;
             // 
+            // btnMenuBoletin
+            // 
+            btnMenuBoletin.BackColor = System.Drawing.Color.Transparent;
+            btnMenuBoletin.Cursor = System.Windows.Forms.Cursors.Hand;
+            btnMenuBoletin.Dock = System.Windows.Forms.DockStyle.Top;
+            btnMenuBoletin.FlatAppearance.BorderSize = 0;
+            btnMenuBoletin.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            btnMenuBoletin.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            btnMenuBoletin.ForeColor = System.Drawing.Color.FromArgb(148, 163, 184);
+            btnMenuBoletin.Location = new System.Drawing.Point(0, 277);
+            btnMenuBoletin.Name = "btnMenuBoletin";
+            btnMenuBoletin.Padding = new System.Windows.Forms.Padding(20, 0, 0, 0);
+            btnMenuBoletin.Size = new System.Drawing.Size(250, 48);
+            btnMenuBoletin.TabIndex = 5;
+            btnMenuBoletin.Text = "📑  Boletín";
+            btnMenuBoletin.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            btnMenuBoletin.UseVisualStyleBackColor = false;
+            btnMenuBoletin.Click += btnMenuBoletin_Click;
+            // 
             // pnlSidebarSeparador
             // 
             pnlSidebarSeparador.Dock = System.Windows.Forms.DockStyle.Fill;
-            pnlSidebarSeparador.Location = new System.Drawing.Point(0, 277);
+            pnlSidebarSeparador.Location = new System.Drawing.Point(0, 325);
             pnlSidebarSeparador.Name = "pnlSidebarSeparador";
-            pnlSidebarSeparador.Size = new System.Drawing.Size(250, 355);
-            pnlSidebarSeparador.TabIndex = 5;
+            pnlSidebarSeparador.Size = new System.Drawing.Size(250, 307);
+            pnlSidebarSeparador.TabIndex = 6;
             // 
             // btnMenuConfiguracion
             // 
@@ -286,6 +307,7 @@ namespace SistemaAcademico.UI
         private System.Windows.Forms.Button btnMenuEstudiantes;
         private System.Windows.Forms.Button btnMenuMatriculas;
         private System.Windows.Forms.Button btnMenuCalificaciones;
+        private System.Windows.Forms.Button btnMenuBoletin;
         private System.Windows.Forms.Panel pnlSidebarSeparador;
         private System.Windows.Forms.Button btnMenuConfiguracion;
         private System.Windows.Forms.Button btnMenuSalir;
